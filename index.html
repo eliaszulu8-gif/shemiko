@@ -1,0 +1,1298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2B3A82">
+<meta name="description" content="Farm records for crops, poultry, workers and money. Works offline.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Shemiko Farm Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one phone-width column, four tabs + add button on a bottom bar, bottom sheets for entry. Indigo cloth + millet gold. */
+:root{
+  --bg:#ECEEE6; --surface:#F8F9F4; --line:#D5D9CB; --ink:#1C2540; --muted:#5D6578;
+  --indigo:#2B3A82; --on-indigo:#FFFFFF; --gold:#C98A12; --gold-soft:#F3E3BC; --good:#2F7D4F; --bad:#B23B2E; --warn:#9A6700;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12162A; --surface:#1B2038; --line:#2E3554; --ink:#E7E9F2; --muted:#9AA1B8;
+  --indigo:#93A4F5; --on-indigo:#12162A; --gold:#E7B24A; --gold-soft:#3A3120; --good:#5EC08A; --bad:#EE7D70; --warn:#E7B24A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12162A; --surface:#1B2038; --line:#2E3554; --ink:#E7E9F2; --muted:#9AA1B8;
+  --indigo:#93A4F5; --on-indigo:#12162A; --gold:#E7B24A; --gold-soft:#3A3120; --good:#5EC08A; --bad:#EE7D70; --warn:#E7B24A; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{max-width:460px;margin:0 auto;padding-block:16px 110px;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:1.7rem;font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.15rem;font-weight:700}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted);font-size:.85rem}
+
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:700;color:var(--muted)}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--good)}
+.status.off i{background:var(--warn)}
+.tools{display:flex;gap:6px;align-items:center}
+.lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.lang button{border:0;background:none;font:700 .78rem var(--body);padding:5px 10px;color:var(--muted);cursor:pointer}
+.lang button.on{background:var(--indigo);color:var(--on-indigo)}
+.iconbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;font:700 .78rem var(--body);padding:5px 11px;cursor:pointer;display:inline-flex;gap:5px;align-items:center}
+.iconbtn svg{width:14px;height:14px}
+header.top{display:flex;flex-direction:column;gap:2px}
+.demo{font-size:.8rem;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.demo button{background:none;border:0;color:var(--indigo);font:inherit;font-weight:700;padding:0;cursor:pointer;text-decoration:underline}
+
+.net{background:var(--indigo);color:var(--on-indigo);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.net .big{font-family:var(--display);font-size:2.3rem;font-weight:800;line-height:1}
+.net .big small{font-size:.9rem;font-weight:500;opacity:.8;margin-left:6px}
+.net .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:.85rem}
+.net .row div{display:flex;flex-direction:column;min-width:0}
+.net .row b{font-family:var(--mono);font-size:1rem}
+.net .eyebrow{color:inherit;opacity:.78}
+
+section{display:flex;flex-direction:column;gap:12px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.link{background:none;border:0;color:var(--indigo);font:700 .85rem var(--body);cursor:pointer;padding:4px 0}
+
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .main{flex:1;min-width:0}
+.item .t{font-weight:700;overflow-wrap:anywhere}
+.item .s{font-size:.82rem;color:var(--muted)}
+.amt{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.92rem;white-space:nowrap}
+.amt.in{color:var(--good)}
+.tick{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);background:none;cursor:pointer;flex:none;display:grid;place-items:center;color:transparent}
+.tick:hover{border-color:var(--indigo)}
+.tick.on{background:var(--good);border-color:var(--good);color:#fff}
+.done .t{text-decoration:line-through;color:var(--muted)}
+.due{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.due.late{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.due.soon{background:var(--gold-soft);color:var(--warn)}
+.due.later{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+.due.ok{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+
+.plots{display:grid;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card .hd{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.card .ttl{font-family:var(--display);font-weight:700;font-size:1.1rem}
+.card .meta{font-size:.82rem;color:var(--muted)}
+.stages{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.stages span{height:8px;border-radius:2px;background:var(--line)}
+.stages span.on{background:var(--gold)}
+.stages span.cur{background:var(--indigo)}
+.stagelbl{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)}
+.stagelbl b{color:var(--ink)}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px dashed var(--line);padding-top:10px}
+.kv div{display:flex;flex-direction:column;min-width:0}
+.kv span{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.kv b{font-family:var(--mono);font-size:.86rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.progress{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--good)}
+
+.bars{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.bar-row{display:grid;grid-template-columns:96px 1fr;gap:10px;align-items:center;font-size:.82rem}
+.bar-row .lbl{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{display:flex;flex-direction:column;gap:3px}
+.track i{display:block;height:9px;border-radius:2px;min-width:2px}
+.track i.c{background:var(--muted);opacity:.55}
+.track i.r{background:var(--gold)}
+.legend{display:flex;gap:16px;font-size:.78rem;color:var(--muted);flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend .c::before{background:var(--muted);opacity:.55}
+.legend .r::before{background:var(--gold)}
+.legend .b::before{background:none;border:2px solid var(--ink);width:6px;height:6px}
+
+.budget-row{display:flex;flex-direction:column;gap:5px}
+.budget-row .top{display:flex;justify-content:space-between;font-size:.85rem;gap:8px}
+.budget-row .top b{font-weight:700}
+.btrack{position:relative;height:12px;border-radius:3px;background:var(--line);overflow:visible}
+.btrack i{display:block;height:100%;border-radius:3px;background:var(--indigo)}
+.btrack i.over{background:var(--bad)}
+.btrack u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+
+.table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{padding:10px 12px;text-align:right;white-space:nowrap;border-top:1px solid var(--line)}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-top:0}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+td:first-child{font-family:var(--body);font-weight:700}
+tr.total td{font-weight:700;background:color-mix(in srgb,var(--gold) 10%,transparent)}
+
+.score{display:flex;gap:14px;align-items:center}
+.ring{width:72px;height:72px;flex:none}
+.score ul{margin:0;padding-left:18px;font-size:.82rem;color:var(--muted)}
+
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;padding:8px 2px;border-radius:8px;font:700 .78rem var(--body);color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--indigo);color:var(--on-indigo)}
+.empty{padding:22px 14px;text-align:center;color:var(--muted);font-size:.9rem}
+
+.say{display:flex;gap:8px;align-items:stretch}
+.say input{flex:1;min-width:0;font:16px var(--body);padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.mic{width:48px;flex:none;border-radius:12px;border:0;background:var(--gold);color:#1C2540;cursor:pointer;display:grid;place-items:center}
+.mic svg{width:22px;height:22px}
+.mic.live{animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--gold) 35%,transparent)}}
+.hint{font-size:.8rem;color:var(--muted)}
+.hint code{font-family:var(--mono);font-size:.78rem;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:5;
+  padding:8px max(16px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+nav.tabs .in{max-width:460px;margin:0 auto;display:grid;grid-template-columns:repeat(2,1fr) 64px repeat(2,1fr);align-items:center}
+nav.tabs button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;font:700 .72rem var(--body);color:var(--muted);cursor:pointer;padding:6px 0}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--indigo)}
+nav.tabs .fab{width:54px;height:54px;border-radius:50%;background:var(--gold);color:#1C2540;justify-self:center;justify-content:center;margin-top:-26px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+nav.tabs .fab svg{width:26px;height:26px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+.scrim{position:fixed;inset:0;background:rgba(10,14,30,.45);z-index:9}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-radius:20px 20px 0 0;max-height:90vh;overflow:auto;
+  padding:18px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet .wrap{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:.8rem;font-weight:700;color:var(--muted)}
+.field input,.field select,.field textarea{font:16px var(--body);padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.field textarea{font:13px/1.45 var(--mono);min-height:110px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{border:0;border-radius:12px;padding:13px;font:700 1rem var(--body);cursor:pointer;background:var(--indigo);color:var(--on-indigo)}
+.btn.ghost{background:none;color:var(--muted)}
+.btn.small{padding:8px 12px;font-size:.85rem;border-radius:10px}
+.btn.line{background:none;border:1px solid var(--line);color:var(--ink)}
+.err{color:var(--bad);font-size:.85rem;min-height:1.2em}
+.sms{display:flex;flex-direction:column;gap:8px}
+.sms .msg{background:var(--bg);border:1px solid var(--line);border-radius:12px 12px 12px 3px;padding:10px 12px;font:12.5px/1.45 var(--mono);overflow-wrap:anywhere;display:flex;flex-direction:column;gap:6px}
+.sms .msg .row{display:flex;justify-content:space-between;align-items:center;font-family:var(--body);font-size:.75rem;color:var(--muted)}
+.modes button{display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:.85rem;padding:10px 2px}
+.modes svg{width:18px;height:18px}
+.eggbars{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:130px}
+.eb{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;font-size:.72rem}
+.eb i{display:block;width:100%;background:var(--gold);border-radius:3px 3px 0 0;min-height:2px}
+.eb em{font-style:normal;color:var(--muted)}
+.curopt{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:11px 14px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.curopt:first-child{border-top:0}
+.curopt .code{font-family:var(--mono);font-size:.85rem;font-weight:500}
+.curopt .sy{color:var(--muted);font-size:.85rem}
+.curopt.on{background:var(--gold-soft)}
+.curopt.on .code::before{content:"✓ "}
+.cmds{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:.84rem}
+.cmds code{font-family:var(--mono);font-size:.8rem;font-weight:500}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:700;font-size:.9rem;z-index:11;max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
+@media (prefers-reduced-motion:reduce){.mic.live{animation:none;outline:3px solid var(--gold)}}
+</style>
+
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<nav class="tabs" aria-label="Main">
+  <div class="in">
+    <button data-tab="today" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span data-t="tabToday"></span></button>
+    <button data-tab="plots"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg><span data-t="tabPlots"></span></button>
+    <button class="fab" id="fab" data-tl="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button data-tab="finance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span data-t="tabFinance"></span></button>
+    <button data-tab="tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span data-t="tabTasks"></span></button>
+  </div>
+</nav>
+
+<script>
+(() => {
+const TODAY = new Date('2026-10-17T12:00:00');
+const CROPS = {
+  maize:{days:120,yield:2.5,price:6,en:'Maize',fr:'Maïs',code:'MAI'},
+  soybean:{days:110,yield:1.4,price:12,en:'Soybean',fr:'Soja',code:'SOY'},
+  groundnut:{days:110,yield:0.9,price:18,en:'Groundnut',fr:'Arachide',code:'ARA'},
+  sunflower:{days:110,yield:0.8,price:9,en:'Sunflower',fr:'Tournesol',code:'SUN'},
+  cotton:{days:160,yield:1.0,price:10,en:'Cotton',fr:'Coton',code:'COT'},
+  beans:{days:90,yield:0.8,price:25,en:'Beans',fr:'Haricots',code:'BEA'},
+  sweetpotato:{days:120,yield:10,price:4,en:'Sweet potato',fr:'Patate douce',code:'SWP'},
+  cassava:{days:300,yield:12,price:3,en:'Cassava',fr:'Manioc',code:'CAS'},
+  tomato:{days:90,yield:25,price:8,en:'Tomato',fr:'Tomate',code:'TOM'},
+  sorghum:{days:120,yield:1.2,price:7,en:'Sorghum',fr:'Sorgho',code:'SOR'},
+  millet:{days:90,yield:0.9,price:8,en:'Millet',fr:'Mil',code:'MIL'},
+  rice:{days:130,yield:3.0,price:12,en:'Rice',fr:'Riz',code:'RIZ'}
+};
+const CATS = {
+  seed:{en:'Seed',fr:'Semences',code:'SEM',kw:['seed','seeds','semence','semences','graine']},
+  fert:{en:'Fertilizer',fr:'Engrais',code:'ENG',kw:['fertilizer','fertiliser','fert','urea','compound','d-compound','basal','top dressing','npk','engrais','urée','uree','compost','fumier']},
+  pest:{en:'Pesticide',fr:'Pesticides',code:'PES',kw:['pesticide','pesticides','spray','herbicide','insecticide','traitement']},
+  labour:{en:'Labour',fr:'Main-d’œuvre',code:'MO',kw:['labour','labor','workers','weeding','harvesters','ouvriers',"main-d'oeuvre","main d'oeuvre","main-d'œuvre",'désherbage','desherbage','sarclage','travailleurs']},
+  plough:{en:'Ploughing',fr:'Labour',code:'LAB',kw:['plough','ploughing','plow','tractor','oxen','tracteur','bœufs','boeufs','labourer']},
+  irrig:{en:'Irrigation',fr:'Irrigation',code:'IRR',kw:['irrigation','pump','fuel','diesel','pompe','carburant','gasoil','water','eau']},
+  transport:{en:'Transport',fr:'Transport',code:'TRA',kw:['transport','truck','moto','camion','charrette','cart']},
+  other:{en:'Other',fr:'Autre',code:'AUT',kw:[]},
+  harvest:{en:'Harvest sale',fr:'Vente de récolte',code:'VR',kw:[]},
+  advance:{en:'Buyer advance',fr:'Avance acheteur',code:'AV',kw:['advance','deposit','avance','acompte']},
+  otherIn:{en:'Other income',fr:'Autre revenu',code:'AR',kw:[]}
+};
+Object.assign(CATS,{
+  chicks:{en:'Chicks',fr:'Poussins',code:'CHK',kw:['chicks','chick','day-old','poussins','poussin']},
+  feed:{en:'Feed',fr:'Aliment',code:'FEE',kw:['feed','mash','starter','grower','finisher','aliment','provende']},
+  vacc:{en:'Vaccines and medicine',fr:'Vaccins et soins',code:'VAC',kw:['vaccine','vaccines','vaccination','newcastle','gumboro','medicine','dewormer','vaccin','vaccins']},
+  housing:{en:'Housing and equipment',fr:'Poulailler et matériel',code:'HSE',kw:['housing','drinkers','feeders','shavings','poulailler','abreuvoirs','mangeoires']},
+  equip:{en:'Equipment and repairs',fr:'Matériel et réparations',code:'EQP',kw:['repair','repairs','service','spare','spares','réparation','pièces']},
+  birdSale:{en:'Bird sales',fr:'Vente de volailles',code:'VB',kw:[]},
+  eggSale:{en:'Egg sales',fr:'Vente d’œufs',code:'VO',kw:[]}
+});
+const COSTS=['seed','fert','pest','labour','plough','irrig','equip','transport','other'], SALES=['harvest','advance','otherIn'];
+const PCOSTS=['chicks','feed','vacc','housing','labour','equip','transport','other'], PSALES=['birdSale','eggSale','otherIn'];
+const PTYPES = {
+  broiler:{en:'Broilers',fr:'Poulets de chair',code:'BRO',end:42,birdPrice:95,stages:{en:['Chicks','Growing','Finishing','Ready to sell'],fr:['Poussins','Croissance','Finition','Prêts à vendre']},cuts:[14,28,42]},
+  layer:{en:'Layers',fr:'Pondeuses',code:'LAY',end:140,eggPrice:2.5,layRate:0.8,stages:{en:['Chicks','Growers','Point of lay','Laying'],fr:['Poussins','Poulettes','Début de ponte','En ponte']},cuts:[42,126,140]},
+  village:{en:'Village chickens',fr:'Poulets villageois',code:'VIL',end:150,birdPrice:120,stages:{en:['Chicks','Growing','Ready to sell'],fr:['Poussins','Croissance','Prêts à vendre']},cuts:[30,150]}
+};
+const ETYPES = {
+  pump:{en:'Water pump',fr:'Pompe à eau',every:90}, sprayer:{en:'Sprayer',fr:'Pulvérisateur',every:60},
+  oxen:{en:'Oxen',fr:'Bœufs',every:180}, cart:{en:'Ox-cart',fr:'Charrette',every:180},
+  bicycle:{en:'Bicycle',fr:'Vélo',every:90}, tractor:{en:'Tractor',fr:'Tracteur',every:100},
+  tools:{en:'Hand tools',fr:'Outils',every:365}, poultry:{en:'Poultry equipment',fr:'Matériel avicole',every:30},
+  other:{en:'Other',fr:'Autre',every:180}
+};
+const TPLS = {
+  prePlanting:{ent:'crop',en:'Before planting',fr:'Avant les semis',items:{
+    en:['Land cleared and ripped or ploughed','Seed bought and checked','Basal fertilizer bought','Plot sizes measured','Workers or oxen booked','Plant after the first good rains','Season budget set in Shemiko'],
+    fr:['Terrain nettoyé et labouré','Semences achetées et vérifiées','Engrais de fond acheté','Surfaces des parcelles mesurées','Ouvriers ou bœufs réservés','Semer après les premières bonnes pluies','Budget de la saison fixé dans Shemiko']}},
+  spraySafety:{ent:'crop',en:'Spraying safely',fr:'Traiter en sécurité',items:{
+    en:['Read the label and the dose','Wear gloves, mask, boots and long sleeves','Check the sprayer for leaks','Spray on a calm day, not before rain','Keep children and animals away','Wash hands and clothes afterwards','Lock chemicals away','Note the date: wait the label’s days before harvest'],
+    fr:['Lire l’étiquette et la dose','Porter gants, masque, bottes et manches longues','Vérifier les fuites du pulvérisateur','Traiter par temps calme, pas avant la pluie','Éloigner enfants et animaux','Se laver les mains et les vêtements après','Ranger les produits sous clé','Noter la date : respecter le délai avant récolte']}},
+  harvest:{ent:'crop',en:'Harvest and storage',fr:'Récolte et stockage',items:{
+    en:['Bags and tarpaulins ready','Crop well dried before bagging','Store cleaned and protected from pests','Bags counted and weighed','Prices compared before selling','Sale recorded in Shemiko'],
+    fr:['Sacs et bâches prêts','Récolte bien séchée avant ensachage','Magasin nettoyé et protégé','Sacs comptés et pesés','Prix comparés avant de vendre','Vente notée dans Shemiko']}},
+  broilerDay1:{ent:'poultry',en:'Broiler chicks: day 1',fr:'Poussins de chair : jour 1',items:{
+    en:['Brooder warmed before chicks arrive','Clean, dry bedding spread','Clean water ready','Starter feed in the feeders','Chicks counted, dead on arrival noted','Chicks spread evenly, not crowded together','Cost of chicks recorded in Shemiko'],
+    fr:['Éleveuse chauffée avant l’arrivée','Litière propre et sèche','Eau propre prête','Aliment démarrage dans les mangeoires','Poussins comptés, morts à l’arrivée notés','Poussins bien répartis, pas entassés','Coût des poussins noté dans Shemiko']}},
+  vaccination:{ent:'poultry',en:'Vaccination day',fr:'Jour de vaccination',items:{
+    en:['Vaccine kept cool in a cooler box','Clean water without chlorine','Water held back for a short time before','Vaccine given soon after mixing','Vaccine and date recorded','Next booster date planned'],
+    fr:['Vaccin gardé au frais','Eau propre sans chlore','Eau retirée peu de temps avant','Vaccin donné vite après mélange','Vaccin et date notés','Date du rappel prévue']}},
+  layerWeek:{ent:'poultry',en:'Layers: weekly check',fr:'Pondeuses : contrôle hebdo',items:{
+    en:['Drinkers and feeders cleaned','Lay rate checked in Shemiko','Sick or broody hens removed','Checked for mites and lice','Litter topped up','Feed bags counted'],
+    fr:['Abreuvoirs et mangeoires nettoyés','Taux de ponte vérifié dans Shemiko','Poules malades ou couveuses retirées','Poux et acariens vérifiés','Litière complétée','Sacs d’aliment comptés']}}
+};
+const INPUTS = { // per hectare, planning assumptions
+  maize:[['mSeed',25,'kg',70],['basal',4,'bags',900],['urea',4,'bags',900]],
+  soybean:[['sSeed',80,'kg',30],['inoc',1,'sachets',120]],
+  groundnut:[['gSeed',80,'kg',40]],
+  sunflower:[['sfSeed',5,'kg',60],['basal',2,'bags',900]],
+  beans:[['bSeed',60,'kg',35]],
+  sweetpotato:[['vines',1,'bundles',600]]
+};
+const isP = () => S.mode==='poultry';
+const isC = () => S.mode==='coop';
+const costsFor = ent => ent==='poultry'?PCOSTS:COSTS, salesFor = ent => ent==='poultry'?PSALES:SALES;
+const entOf = r => r.ent||'crop';
+const recsMode = () => S.records.filter(r=>entOf(r)===(S.mode||'crop'));
+const tasksMode = () => S.tasks.filter(x=>(x.ent||'crop')===(S.mode||'crop'));
+const budgetMode = () => isP() ? (S.budgetP=S.budgetP||{}) : (S.budget=S.budget||{});
+
+const T = {
+ en:{tabToday:'Today',tabPlots:'Plots',tabFinance:'Finance',tabTasks:'Calendar',add:'Add record',farm:'Shemiko · Chipata farm',
+  online:'Online',offline:'Offline · saving on this phone',backup:'Backup',example:'Showing example data for a 3.7 ha farm in Eastern Province.',startOwn:'Start my own farm',confirmClear:'Tap again to remove the example data',cleared:'Example data removed',
+  season:'2026/27 season · profit so far',moneyIn:'Money in',spent:'Spent',readyH:'is ready to harvest',expect:'Expected about',nextJobs:'Next jobs',allJobs:'All jobs',noJobs:'No open jobs. Add one with the + button.',
+  byPlot:'Cost and income by plot',addPlotChart:'Add a plot to see this chart.',sayPh:'Say or type: "Bought 2 bags of urea for 1800"',sayHint:'Tap the mic and speak, or type a sentence. Shemiko fills in the form for you.',
+  myPlots:'My plots',plots:'plots',inTotal:'ha in total',ready:'Ready',daysLeft:'days left',planted:'planted',day:'day',of:'of',estYield:'Est. yield',estProfit:'Est. profit',addPlot:'Add a plot',
+  estNote:'Estimates use typical Zambian smallholder yields per hectare and rough market prices per kg. Change them when you know your real numbers.',
+  stages:['Planted','Growing','Flowering','Maturing','Harvest'],
+  fin:'Finance',records:'Records',budget:'Budget',loans:'Loans',forecast:'Cash flow',all:'All',profit:'Profit so far',biggest:'Biggest cost',share:'Share of spending',nothing:'Nothing recorded yet. Tap + to add what you spent or sold.',
+  budgetTitle:'Season budget',budgetUsed:'used',over:'over budget',left:'left',planned:'Budget',actual:'Spent',editBudget:'Edit budget',saveBudget:'Save budget',budgetSaved:'Budget saved',
+  loansTitle:'Loans and credit',owed:'Still to repay',borrowed:'Borrowed',interest:'Interest',totalDue:'Total due',repaid:'Repaid',due:'Due',repay:'Record repayment',addLoan:'Add a loan',lender:'Lender',rate:'Interest (% for the loan)',startDate:'Received on',dueDate:'Repay by',paidOff:'Paid off',noLoans:'No loans recorded.',
+  cashNow:'Cash now (estimate)',fcIn:'Expected in',fcOut:'Expected out',fcBal:'Cash at month end',month:'Month',fcNote:'Money in comes from unsold harvest at estimated prices. Money out is loan repayments and the budget you have not spent yet.',lowCash:'Cash runs short in',okCash:'Cash stays positive for the next four months.',
+  scoreTitle:'Shemiko record score',scoreWhy:'Lenders can use this score to offer you credit.',sc1:'Records kept every month',sc2:'Loan repayments on time',sc3:'Season is profitable',sc4:'Budget set',
+  calTitle:'Farm calendar',noTasks:'No jobs planned yet.',coming:'Coming up for your crops',harvestNow:'harvest now',harvestAround:'harvest around',
+  late:'late',days:'days',todayW:'Today',tomorrow:'Tomorrow',inD:'In',wholeFarm:'Whole farm',
+  addRec:'Add a record',iSpent:'I spent',iSold:'I sold',aJob:'A job to do',whatFor:'What for',job:'Job',jobPh:'e.g. Spray cotton',amount:'Amount ({c})',date:'Date',plot:'Plot',note:'Note (optional)',notePh:'e.g. 2 bags of urea',save:'Save',cancel:'Cancel',
+  plotName:'Plot name',plotPh:'e.g. North field',crop:'Crop',size:'Size (ha)',plantDate:'Planting date',savePlot:'Save plot',
+  errName:'Give the plot a name.',errHa:'Enter the size in hectares, for example 0.5.',errJob:'Write what needs doing.',errAmt:'Enter the amount in {c}.',errLender:'Enter who lent the money.',
+  plotSaved:'Plot saved',jobSaved:'Job added',costSaved:'Cost saved',saleSaved:'Sale saved',loanSaved:'Loan saved',repaySaved:'Repayment saved',
+  heard:'Check what Shemiko understood, then save.',noParse:'Shemiko could not find an amount. Try "sold 10 bags of maize for 3400".',
+  micNo:'The microphone is not available here. Tap the microphone on your phone keyboard to speak into the box instead.',listening:'Listening…',
+  bkTitle:'Offline and SMS backup',bkIntro:'Shemiko works without internet. Everything is saved on this phone first and syncs when you are back online.',
+  bkStatus:'Last backup',never:'never',smsTitle:'Back up by SMS',smsIntro:'No data connection? Send these messages to the Shemiko number. They hold your whole farm record.',smsTo:'Send to',smsNum:'+260 97 000 0000 (example number)',
+  copy:'Copy',copied:'Copied',copyFail:'Select the text and copy it by hand.',marked:'Mark as sent',markedDone:'Backup marked as sent',
+  restoreTitle:'Restore from SMS',restoreIntro:'Paste the backup messages here to bring your farm back on a new phone.',restore:'Restore farm',restored:'Farm restored',restoreErr:'These messages could not be read. Paste every part, starting with SHM3.',
+  cmdTitle:'Record by SMS from any phone',cmdIntro:'On a basic phone, send one line per record:',cmdSpend:'money spent',cmdSell:'money in',cmdJob:'a job to do',coopTab:'Co-op',tabOverview:'Overview',tabMembers:'Members',tabCredit:'Credit',tabOrders:'Orders',membersN:'members',coopHarvest:'Expected harvest, all members',tonnes:'tonnes',avgScore:'Average record score',hectares:'Hectares',creditOut:'Credit still owed',needAttention:'Needs attention',lateRepay:'Late repayment',dueWas:'due',view:'View',quiet:'No records',lastRecord:'Last record',allGood:'All members are on track.',coopNote:'Example cooperative. In the real app, members’ phones send their records to the co-op leader when they are online.',membersTitle:'Members',estHarvest:'Est. harvest',addMember:'Add a member',coopCredit:'Co-op credit',lent:'Lent',repayRate:'Repaid on time',member:'Member',repayNote:'Repaid on time counts loans already due. Late members show in red.',groupOrder:'Group input order',orderTotal:'Est. cost at shop prices',bulkPrice:'Est. bulk price',saving:'Est. saving',item:'Item',qty:'Quantity',estCost:'Est. cost',orderNote:'Quantities use planning rates per hectare (for example maize: 25 kg seed, 4 bags basal, 4 bags urea). Prices and the 10% bulk saving are estimates to confirm with agro-dealers.',score:'Score',noLoan:'No loan at the moment.',close:'Close',village:'Village',mainCrop:'Main crop',memberSaved:'Member added',mSeed:'Maize seed',basal:'Basal fertilizer (D-Compound)',urea:'Top dressing (urea)',sSeed:'Soybean seed',inoc:'Soybean inoculant',gSeed:'Groundnut seed',sfSeed:'Sunflower seed',bSeed:'Bean seed',vines:'Sweet potato vines',layerMash:'Layer mash (1 month)',broilerFeed:'Broiler feed (1 batch)',kg:'kg',bags:'bags',sachets:'sachets',bundles:'bundles',chkTab:'Checklists',startChk:'Start a checklist',noChk:'No checklist in progress.',finished:'Finished',steps:'steps',again:'Start again',makeOwn:'Or make your own',chkName:'Checklist name',chkNamePh:'e.g. Market day',chkItems:'Steps, one per line',chkItemsPh:'Load the crates\nTake the receipt book\nCheck prices',saveStart:'Save and start',errChkName:'Give the checklist a name.',errChkItems:'Write at least one step.',chkStarted:'Checklist started',chkDone:'Checklist finished. Well done!',jobsTab:'Jobs',equipTab:'Equipment',equipCost:'Repairs and servicing, last 12 months',items:'Items',dueSoon:'Due within a week',serviceLate:'Service overdue',serviceSoon:'Service soon',okW:'OK',boughtOn:'Bought',value:'Value',repairs12:'Repairs, 12 mo',nextService:'Next service',repair:'Repair',service:'Service',recordService:'Record service or repair',noEquip:'No equipment yet.',addEquip:'Add equipment',equipNote:'Service and repair costs are added to your records as “Equipment and repairs”, so they count in your profit.',equipName:'Name',equipPh:'e.g. Petrol water pump',kind:'Kind',usedFor:'Used for',serviceEvery:'Service every (days)',lastService:'Last serviced',errEquipName:'Give the equipment a name.',equipSaved:'Equipment saved',whatDone:'What was done',servicePh:'e.g. Oil change',serviceHint:'A service resets the reminder. Any cost is added to your records.',serviceSaved:'Saved',serviceDue:'service due',record:'Record',workers:'Workers',owes:'Owed',allPaid:'All paid',daysWorked:'Days worked',earned:'Earned',paidW:'Paid',addWork:'Add work',pay:'Pay',owedWorkers:'Owed to workers',paidSeason:'Paid this season',personDays:'Person-days',addWorker:'Add a worker',perDay:'a day',casual:'Casual groups',casualSub:'People hired by the day without a name on file',workLog:'Work done',daysShort:'days',owedW:'Owed',noWork:'No work recorded yet.',workNote:'When you pay, Shemiko adds the wages to your records as a labour cost for that plot or flock, so your profit stays right.',workerName:'Name',phone:'Phone',dayRate:'Pay per day',errWorkerName:'Enter the worker’s name.',workerSaved:'Worker saved',who:'Who worked',whatWork:'What work',workPh:'e.g. Weeding the maize',where:'Plot or flock',people:'Number of people',daysN:'Days',ratePer:'Pay per person per day',total:'Total',paidNow:'Already paid',errTask:'Write what work was done.',errDays:'Enter how many days.',workSaved:'Work saved',payHow:'Paid by',cash:'Cash',mobileMoney:'Mobile money',payHint:'Pays the oldest work first and adds the wages to your labour costs.',paySaved:'Payment saved',crops:'Crops',poultry:'Poultry',section:'Farm section',tabFlocks:'Flocks',myFlocks:'My flocks',flocksN:'flocks',birds:'birds',flock:'Flock',allFlocks:'All flocks',pSeason:'Poultry · profit so far',pProfit:'Poultry profit so far',pBudget:'Poultry budget',birdsAlive:'Birds alive',eggsDay:'Eggs a day',layRate:'Lay rate',logToday:'Log today',sellSoon:'ready to sell soon',estValue:'Est. value',eggs7:'Eggs, last 7 days',layIn:'Laying in',sold:'Sold',sellIn:'Sell in',started:'started',week:'week',alive:'Alive',mortality:'Deaths',feedUsed:'Feed used',noFlocks:'No flocks yet. Add your first flock.',addFlock:'Add a flock',pNote:'Estimates use about K95 per broiler, K120 per village chicken and K2.50 per egg. Change them when you know your real prices.',layingNow:'laying',eggsPerDay:'eggs a day',pointOfLay:'starts laying around',sellAround:'sell around',flockName:'Flock name',flockPh:'e.g. Broiler batch 8',birdType:'Type of bird',birdsPlaced:'Number of birds',startedOn:'Started on',errFlockName:'Give the flock a name.',errBirds:'Enter how many birds you started with.',flockSaved:'Flock saved',eggsCollected:'Eggs collected',deaths:'Birds that died',feedKg:'Feed used (kg)',errDeaths:'That is more birds than are alive in this flock.',logSaved:'Log saved',plantIn:'Plant in',dayOne:'day',notPlanted:'Not planted yet',plantOn:'to plant',msgs:'messages',part:'Part',currency:'Currency',curTitle:'Choose your currency',curNote:'Shemiko shows every amount in this currency. Exchange rates are approximate, so change the rate if you know today’s.',rateLbl:'Exchange rate',fixed:'Fixed rate',curSaved:'Currency changed'},
+ fr:{tabToday:'Aujourd’hui',tabPlots:'Parcelles',tabFinance:'Finances',tabTasks:'Calendrier',add:'Ajouter',farm:'Shemiko · ferme de Chipata',
+  online:'En ligne',offline:'Hors ligne · enregistré sur ce téléphone',backup:'Sauvegarde',example:'Exemple d’une ferme de 3,7 ha dans la province de l’Est.',startOwn:'Créer ma ferme',confirmClear:'Touchez encore pour effacer l’exemple',cleared:'Exemple effacé',
+  season:'Saison 2026/27 · bénéfice à ce jour',moneyIn:'Entrées',spent:'Dépenses',readyH:'est prêt à récolter',expect:'Environ',nextJobs:'Prochains travaux',allJobs:'Tous les travaux',noJobs:'Aucun travail prévu. Ajoutez-en avec le bouton +.',
+  byPlot:'Dépenses et entrées par parcelle',addPlotChart:'Ajoutez une parcelle pour voir ce graphique.',sayPh:'Dites ou écrivez : « J’ai acheté 2 sacs d’urée pour 1800 »',sayHint:'Touchez le micro et parlez, ou écrivez une phrase. Shemiko remplit le formulaire pour vous.',
+  myPlots:'Mes parcelles',plots:'parcelles',inTotal:'ha au total',ready:'Prêt',daysLeft:'jours restants',planted:'semé le',day:'jour',of:'sur',estYield:'Récolte est.',estProfit:'Bénéfice est.',addPlot:'Ajouter une parcelle',
+  estNote:'Les estimations utilisent des rendements courants des petits exploitants zambiens et les prix récents du marché au kilo. Modifiez-les quand vous connaissez vos vrais chiffres.',
+  stages:['Semis','Croissance','Floraison','Maturation','Récolte'],
+  fin:'Finances',records:'Opérations',budget:'Budget',loans:'Crédits',forecast:'Trésorerie',all:'Tout',profit:'Bénéfice à ce jour',biggest:'Plus grosse dépense',share:'Part des dépenses',nothing:'Rien d’enregistré. Touchez + pour noter une dépense ou une vente.',
+  budgetTitle:'Budget de la saison',budgetUsed:'utilisé',over:'dépassé',left:'restant',planned:'Budget',actual:'Dépensé',editBudget:'Modifier le budget',saveBudget:'Enregistrer le budget',budgetSaved:'Budget enregistré',
+  loansTitle:'Crédits',owed:'Reste à rembourser',borrowed:'Emprunté',interest:'Intérêts',totalDue:'Total dû',repaid:'Remboursé',due:'Échéance',repay:'Noter un remboursement',addLoan:'Ajouter un crédit',lender:'Prêteur',rate:'Intérêt (% sur le prêt)',startDate:'Reçu le',dueDate:'À rembourser le',paidOff:'Soldé',noLoans:'Aucun crédit enregistré.',
+  cashNow:'Trésorerie actuelle (estimée)',fcIn:'Entrées prévues',fcOut:'Sorties prévues',fcBal:'Solde fin de mois',month:'Mois',fcNote:'Les entrées viennent de la récolte non vendue aux prix estimés. Les sorties sont les remboursements et le budget non encore dépensé.',lowCash:'La trésorerie manque en',okCash:'La trésorerie reste positive pendant les quatre prochains mois.',
+  scoreTitle:'Score de gestion Shemiko',scoreWhy:'Les prêteurs peuvent utiliser ce score pour vous accorder un crédit.',sc1:'Opérations notées chaque mois',sc2:'Remboursements à l’heure',sc3:'Saison rentable',sc4:'Budget fixé',
+  calTitle:'Calendrier agricole',noTasks:'Aucun travail prévu.',coming:'À venir pour vos cultures',harvestNow:'récolter maintenant',harvestAround:'récolte vers le',
+  late:'de retard',days:'jours',todayW:'Aujourd’hui',tomorrow:'Demain',inD:'Dans',wholeFarm:'Toute la ferme',
+  addRec:'Ajouter une opération',iSpent:'J’ai dépensé',iSold:'J’ai vendu',aJob:'Un travail',whatFor:'Pour quoi',job:'Travail',jobPh:'ex. Traiter le coton',amount:'Montant ({c})',date:'Date',plot:'Parcelle',note:'Note (facultatif)',notePh:'ex. 2 sacs d’urée',save:'Enregistrer',cancel:'Annuler',
+  plotName:'Nom de la parcelle',plotPh:'ex. Champ du nord',crop:'Culture',size:'Surface (ha)',plantDate:'Date de semis',savePlot:'Enregistrer',
+  errName:'Donnez un nom à la parcelle.',errHa:'Indiquez la surface en hectares, par exemple 0,5.',errJob:'Écrivez le travail à faire.',errAmt:'Indiquez le montant en {c}.',errLender:'Indiquez qui a prêté l’argent.',
+  plotSaved:'Parcelle enregistrée',jobSaved:'Travail ajouté',costSaved:'Dépense enregistrée',saleSaved:'Vente enregistrée',loanSaved:'Crédit enregistré',repaySaved:'Remboursement enregistré',
+  heard:'Vérifiez ce que Shemiko a compris, puis enregistrez.',noParse:'Shemiko n’a pas trouvé de montant. Essayez « vendu 300 kg de maïs pour 1800 ».',
+  micNo:'Le micro n’est pas disponible ici. Touchez le micro du clavier de votre téléphone pour dicter dans la case.',listening:'J’écoute…',
+  bkTitle:'Hors ligne et sauvegarde SMS',bkIntro:'Shemiko marche sans internet. Tout est d’abord enregistré sur ce téléphone, puis synchronisé quand la connexion revient.',
+  bkStatus:'Dernière sauvegarde',never:'jamais',smsTitle:'Sauvegarder par SMS',smsIntro:'Pas de connexion ? Envoyez ces messages au numéro Shemiko. Ils contiennent toute votre ferme.',smsTo:'Envoyer au',smsNum:'+260 97 000 0000 (numéro d’exemple)',
+  copy:'Copier',copied:'Copié',copyFail:'Sélectionnez le texte et copiez-le à la main.',marked:'Marquer comme envoyé',markedDone:'Sauvegarde marquée comme envoyée',
+  restoreTitle:'Restaurer depuis un SMS',restoreIntro:'Collez ici les messages de sauvegarde pour retrouver votre ferme sur un nouveau téléphone.',restore:'Restaurer la ferme',restored:'Ferme restaurée',restoreErr:'Ces messages sont illisibles. Collez toutes les parties, en commençant par SHM3.',
+  cmdTitle:'Noter par SMS depuis n’importe quel téléphone',cmdIntro:'Sur un téléphone simple, envoyez une ligne par opération :',cmdSpend:'dépense',cmdSell:'entrée d’argent',cmdJob:'travail à faire',coopTab:'Coopérative',tabOverview:'Vue d’ensemble',tabMembers:'Membres',tabCredit:'Crédit',tabOrders:'Commandes',membersN:'membres',coopHarvest:'Récolte prévue, tous les membres',tonnes:'tonnes',avgScore:'Score moyen',hectares:'Hectares',creditOut:'Crédit restant dû',needAttention:'À surveiller',lateRepay:'Remboursement en retard',dueWas:'échéance',view:'Voir',quiet:'Sans opérations',lastRecord:'Dernière opération',allGood:'Tous les membres sont à jour.',coopNote:'Coopérative d’exemple. Dans la vraie application, les téléphones des membres envoient leurs données au responsable quand ils sont en ligne.',membersTitle:'Membres',estHarvest:'Récolte est.',addMember:'Ajouter un membre',coopCredit:'Crédit de la coopérative',lent:'Prêté',repayRate:'Remboursé à temps',member:'Membre',repayNote:'Le taux compte les prêts déjà échus. Les retards sont en rouge.',groupOrder:'Commande groupée d’intrants',orderTotal:'Coût est. au prix boutique',bulkPrice:'Prix de gros est.',saving:'Économie est.',item:'Article',qty:'Quantité',estCost:'Coût est.',orderNote:'Les quantités utilisent des doses par hectare (ex. maïs : 25 kg de semences, 4 sacs d’engrais de fond, 4 sacs d’urée). Prix et remise de 10 % à confirmer avec les fournisseurs.',score:'Score',noLoan:'Pas de prêt en cours.',close:'Fermer',village:'Village',mainCrop:'Culture principale',memberSaved:'Membre ajouté',mSeed:'Semences de maïs',basal:'Engrais de fond (D-Compound)',urea:'Engrais de couverture (urée)',sSeed:'Semences de soja',inoc:'Inoculum soja',gSeed:'Semences d’arachide',sfSeed:'Semences de tournesol',bSeed:'Semences de haricot',vines:'Boutures de patate douce',layerMash:'Aliment pondeuses (1 mois)',broilerFeed:'Aliment poulets (1 lot)',kg:'kg',bags:'sacs',sachets:'sachets',bundles:'bottes',chkTab:'Listes',startChk:'Commencer une liste',noChk:'Aucune liste en cours.',finished:'Terminées',steps:'étapes',again:'Recommencer',makeOwn:'Ou créez la vôtre',chkName:'Nom de la liste',chkNamePh:'ex. Jour de marché',chkItems:'Étapes, une par ligne',chkItemsPh:'Charger les caisses\nPrendre le carnet de reçus\nVérifier les prix',saveStart:'Enregistrer et commencer',errChkName:'Donnez un nom à la liste.',errChkItems:'Écrivez au moins une étape.',chkStarted:'Liste commencée',chkDone:'Liste terminée. Bravo !',jobsTab:'Travaux',equipTab:'Matériel',equipCost:'Réparations et entretien, 12 derniers mois',items:'Éléments',dueSoon:'À faire sous 7 jours',serviceLate:'Entretien en retard',serviceSoon:'Entretien bientôt',okW:'OK',boughtOn:'Acheté le',value:'Valeur',repairs12:'Réparations, 12 mois',nextService:'Prochain entretien',repair:'Réparation',service:'Entretien',recordService:'Noter un entretien ou une réparation',noEquip:'Aucun matériel.',addEquip:'Ajouter du matériel',equipNote:'Les frais d’entretien et de réparation sont ajoutés à vos opérations comme « Matériel et réparations ».',equipName:'Nom',equipPh:'ex. Motopompe',kind:'Type',usedFor:'Utilisé pour',serviceEvery:'Entretien tous les (jours)',lastService:'Dernier entretien',errEquipName:'Donnez un nom au matériel.',equipSaved:'Matériel enregistré',whatDone:'Ce qui a été fait',servicePh:'ex. Vidange',serviceHint:'Un entretien remet le rappel à zéro. Le coût est ajouté à vos opérations.',serviceSaved:'Enregistré',serviceDue:'entretien à faire',record:'Noter',workers:'Ouvriers',owes:'Dû',allPaid:'Tout payé',daysWorked:'Jours travaillés',earned:'Gagné',paidW:'Payé',addWork:'Ajouter du travail',pay:'Payer',owedWorkers:'Dû aux ouvriers',paidSeason:'Payé cette saison',personDays:'Jours-personne',addWorker:'Ajouter un ouvrier',perDay:'par jour',casual:'Journaliers',casualSub:'Personnes payées à la journée sans fiche',workLog:'Travail fait',daysShort:'j',owedW:'Dû',noWork:'Aucun travail noté.',workNote:'Quand vous payez, Shemiko ajoute les salaires à vos opérations comme main-d’œuvre pour cette parcelle ou ce lot.',workerName:'Nom',phone:'Téléphone',dayRate:'Paie par jour',errWorkerName:'Indiquez le nom de l’ouvrier.',workerSaved:'Ouvrier enregistré',who:'Qui a travaillé',whatWork:'Quel travail',workPh:'ex. Sarcler le maïs',where:'Parcelle ou lot',people:'Nombre de personnes',daysN:'Jours',ratePer:'Paie par personne et par jour',total:'Total',paidNow:'Déjà payé',errTask:'Écrivez le travail fait.',errDays:'Indiquez le nombre de jours.',workSaved:'Travail enregistré',payHow:'Payé par',cash:'Espèces',mobileMoney:'Mobile money',payHint:'Paie d’abord le travail le plus ancien et ajoute les salaires à la main-d’œuvre.',paySaved:'Paiement enregistré',crops:'Cultures',poultry:'Volaille',section:'Partie de la ferme',tabFlocks:'Lots',myFlocks:'Mes lots',flocksN:'lots',birds:'volailles',flock:'Lot',allFlocks:'Tous les lots',pSeason:'Volaille · bénéfice à ce jour',pProfit:'Bénéfice volaille à ce jour',pBudget:'Budget volaille',birdsAlive:'Volailles vivantes',eggsDay:'Œufs par jour',layRate:'Taux de ponte',logToday:'Noter aujourd’hui',sellSoon:'bientôt prêts à vendre',estValue:'Valeur est.',eggs7:'Œufs, 7 derniers jours',layIn:'Ponte dans',sold:'Vendu',sellIn:'Vente dans',started:'démarré le',week:'semaine',alive:'Vivantes',mortality:'Mortalité',feedUsed:'Aliment utilisé',noFlocks:'Aucun lot. Ajoutez votre premier lot.',addFlock:'Ajouter un lot',pNote:'Les estimations utilisent environ 95 K par poulet de chair, 120 K par poulet villageois et 2,50 K par œuf. Modifiez-les quand vous connaissez vos vrais prix.',layingNow:'en ponte',eggsPerDay:'œufs par jour',pointOfLay:'début de ponte vers le',sellAround:'vente vers le',flockName:'Nom du lot',flockPh:'ex. Lot de poulets 8',birdType:'Type de volaille',birdsPlaced:'Nombre de volailles',startedOn:'Démarré le',errFlockName:'Donnez un nom au lot.',errBirds:'Indiquez le nombre de volailles au départ.',flockSaved:'Lot enregistré',eggsCollected:'Œufs ramassés',deaths:'Volailles mortes',feedKg:'Aliment utilisé (kg)',errDeaths:'C’est plus que le nombre de volailles vivantes dans ce lot.',logSaved:'Note enregistrée',plantIn:'Semis dans',dayOne:'jour',notPlanted:'Pas encore semé',plantOn:'à semer le',msgs:'messages',part:'Partie',currency:'Monnaie',curTitle:'Choisissez votre monnaie',curNote:'Shemiko affiche tous les montants dans cette monnaie. Les taux de change sont approximatifs : modifiez le taux si vous connaissez celui du jour.',rateLbl:'Taux de change',fixed:'Taux fixe',curSaved:'Monnaie changée'}
+};
+
+const iso = d => d.toISOString().slice(0,10);
+const addDays = (n, from=TODAY) => { const d = new Date(from); d.setDate(d.getDate()+n); return iso(d); };
+let uid = Date.now()%100000; const id = () => 'x'+(uid++).toString(36);
+
+function sampleCoop(){
+  const m=(id,name,village,phone,crops,birds,score,last,loan)=>({id,name,village,phone,crops,birds,score,last:addDays(-last),loan});
+  return { name:'Masaiti Farmers Cooperative', district:'Masaiti, Copperbelt', members:[
+    m('m1','Grace Mulenga','Kashitu','0977 100 201',[{crop:'maize',ha:2},{crop:'soybean',ha:1}],{broiler:0,layer:50},84,1,{principal:9000,repaid:6000,due:'2027-06-30'}),
+    m('m2','Peter Chanda','Kafulafuta','0966 100 202',[{crop:'maize',ha:3}],{broiler:300,layer:0},72,3,{principal:12000,repaid:4000,due:'2027-06-30'}),
+    m('m3','Ruth Bwalya','Kashitu','0955 100 203',[{crop:'groundnut',ha:1},{crop:'maize',ha:1}],{broiler:0,layer:0},91,0,{principal:4000,repaid:4000,due:'2026-09-30'}),
+    m('m4','Moses Mwansa','Mutaba','0977 100 204',[{crop:'maize',ha:4},{crop:'sunflower',ha:1}],{broiler:0,layer:0},45,19,{principal:15000,repaid:2000,due:'2026-09-30'}),
+    m('m5','Esther Musonda','Kafulafuta','0966 100 205',[{crop:'soybean',ha:2}],{broiler:200,layer:100},88,2,{principal:8000,repaid:5000,due:'2027-06-30'}),
+    m('m6','John Kunda','Mutaba','0955 100 206',[{crop:'maize',ha:1.5}],{broiler:0,layer:0},63,9,{principal:5000,repaid:1000,due:'2027-06-30'}),
+    m('m7','Agnes Chileshe','Kashitu','0977 100 207',[{crop:'maize',ha:1},{crop:'beans',ha:0.5}],{broiler:100,layer:0},79,4,null),
+    m('m8','Daniel Mumba','Ndubeni','0966 100 208',[{crop:'maize',ha:2.5},{crop:'groundnut',ha:0.5}],{broiler:0,layer:0},38,23,{principal:10000,repaid:3000,due:'2026-08-31'}),
+    m('m9','Febby Nkonde','Ndubeni','0955 100 209',[{crop:'sunflower',ha:2}],{broiler:0,layer:200},82,1,{principal:7000,repaid:7000,due:'2026-10-15'}),
+    m('m10','Charles Kapembwa','Kafulafuta','0977 100 210',[{crop:'maize',ha:5},{crop:'soybean',ha:2}],{broiler:500,layer:0},76,5,{principal:20000,repaid:8000,due:'2027-06-30'}),
+    m('m11','Loveness Sichone','Mutaba','0966 100 211',[{crop:'groundnut',ha:1}],{broiler:0,layer:0},57,15,null),
+    m('m12','Patrick Kabwe','Kashitu','0955 100 212',[{crop:'maize',ha:2},{crop:'sweetpotato',ha:0.5}],{broiler:150,layer:0},69,6,{principal:6000,repaid:2500,due:'2027-06-30'})
+  ]};
+}
+function sampleLogs(type){
+  const out=[];
+  if(type==='broiler'){ const deaths={1:2,3:1,9:1,20:1,26:1};
+    for(let d=0; d<=28; d++) out.push({date:addDays(d,new Date('2026-09-19T12:00:00')),deaths:deaths[d]||0,feed:Math.round(200*(0.012+0.0045*d)),eggs:0});
+  } else {
+    out.push({date:'2026-04-10',deaths:4,feed:0,eggs:0}); out.push({date:'2026-09-22',deaths:1,feed:0,eggs:0});
+    const eggs=[116,121,119,114,123,118,120,117,122,119,115,124,121,118];
+    eggs.forEach((e,i)=>out.push({date:addDays(i-13),deaths:i===6?1:0,feed:17,eggs:e}));
+  }
+  return out;
+}
+function sample(lang){
+  return { lang, example:true, lastBackup:null, currency:'ZMW',
+    plots:[
+      {id:'p1',name:'Main field',crop:'maize',ha:2,planted:'2026-11-25'},
+      {id:'p2',name:'Hill field',crop:'soybean',ha:1,planted:'2026-12-05'},
+      {id:'p3',name:'Near the dambo',crop:'groundnut',ha:0.5,planted:'2026-11-28'},
+      {id:'p4',name:'Dambo garden',crop:'tomato',ha:0.2,planted:'2026-08-20'}
+    ],
+    records:[
+      {id:'r1',date:'2026-09-05',plot:'p1',type:'cost',cat:'plough',amount:1200,note:'Ripping with oxen, 2 ha'},
+      {id:'r2',date:'2026-10-02',plot:'p1',type:'cost',cat:'seed',amount:3500,note:'Hybrid maize seed, 50 kg'},
+      {id:'r3',date:'2026-10-08',plot:'p1',type:'cost',cat:'fert',amount:7200,note:'Basal D-Compound, 8 bags (on credit)'},
+      {id:'r4',date:'2026-10-10',plot:'p2',type:'cost',cat:'seed',amount:2400,note:'Soybean seed, 80 kg'},
+      {id:'r5',date:'2026-08-18',plot:'p4',type:'cost',cat:'seed',amount:600,note:'Tomato seedlings'},
+      {id:'r6',date:'2026-08-25',plot:'p4',type:'cost',cat:'irrig',amount:900,note:'Pump fuel'},
+      {id:'r7',date:'2026-09-20',plot:'p4',type:'cost',cat:'pest',amount:750,note:'Blight sprays'},
+      {id:'r8',date:'2026-10-01',plot:'p4',type:'cost',cat:'labour',amount:500,note:'Staking and weeding'},
+      {id:'r9',date:'2026-10-11',plot:'',type:'sale',cat:'harvest',amount:13600,note:'Stored maize from last season, 40 × 50 kg bags'},
+      {id:'r10',date:'2026-10-15',plot:'p4',type:'sale',cat:'harvest',amount:1800,note:'First tomatoes, 12 crates'},
+      {id:'r11',date:'2026-09-01',plot:'',type:'cost',cat:'equip',amount:60,note:'Knapsack sprayer: new nozzle and seals'},
+      {id:'r12',date:'2026-09-14',plot:'p4',type:'cost',cat:'equip',amount:380,note:'Petrol water pump: new delivery hose'},
+      {id:'q1',ent:'poultry',date:'2026-09-19',plot:'f1',type:'cost',cat:'chicks',amount:3600,note:'200 day-old chicks × K18'},
+      {id:'q2',ent:'poultry',date:'2026-09-19',plot:'f1',type:'cost',cat:'feed',amount:3300,note:'Broiler starter, 6 × 50 kg'},
+      {id:'q3',ent:'poultry',date:'2026-09-26',plot:'f1',type:'cost',cat:'vacc',amount:450,note:'Newcastle and Gumboro'},
+      {id:'q4',ent:'poultry',date:'2026-10-03',plot:'f1',type:'cost',cat:'feed',amount:4400,note:'Broiler grower, 8 bags'},
+      {id:'q5',ent:'poultry',date:'2026-10-10',plot:'f1',type:'cost',cat:'labour',amount:400,note:'Helper, 2 weeks'},
+      {id:'q6',ent:'poultry',date:'2026-10-01',plot:'f2',type:'cost',cat:'feed',amount:6000,note:'Layer mash, 12 bags'},
+      {id:'q7',ent:'poultry',date:'2026-09-28',plot:'f2',type:'cost',cat:'housing',amount:800,note:'New drinkers and repairs'},
+      {id:'q8',ent:'poultry',date:'2026-10-05',plot:'f2',type:'sale',cat:'eggSale',amount:3000,note:'40 trays × K75'},
+      {id:'q9',ent:'poultry',date:'2026-10-12',plot:'f2',type:'sale',cat:'eggSale',amount:2850,note:'38 trays × K75'}
+    ],
+    tasks:[
+      {id:'t1',date:addDays(-1),plot:'p1',text:'Book oxen to finish ripping',done:false},
+      {id:'t2',date:addDays(2),plot:'p4',text:'Spray tomatoes for blight',done:false},
+      {id:'t3',date:addDays(6),plot:'p4',text:'Take tomatoes to market',done:false},
+      {id:'t4',date:addDays(12),plot:'p2',text:'Buy soybean inoculant',done:false},
+      {id:'t5',date:addDays(35),plot:'p1',text:'Plant maize after the first good rains',done:false},
+      {id:'t6',date:addDays(-4),plot:'p1',text:'Collect seed from the agro-dealer',done:true},
+      {id:'u1',ent:'poultry',date:addDays(1),plot:'f1',text:'Gumboro booster (day 28)',done:false},
+      {id:'u2',ent:'poultry',date:addDays(4),plot:'f2',text:'Deworm the layers',done:false},
+      {id:'u3',ent:'poultry',date:addDays(9),plot:'f1',text:'Confirm buyers for the broilers',done:false},
+      {id:'u4',ent:'poultry',date:addDays(14),plot:'f1',text:'Sell broilers (day 42)',done:false},
+      {id:'u5',ent:'poultry',date:addDays(-2),plot:'f2',text:'Clean and refill the drinkers',done:true}
+    ],
+    budget:{seed:7000,fert:15000,pest:2500,labour:4000,plough:1500,irrig:1500,equip:1500,transport:1500,other:1000},
+    mode:'crop',
+    flocks:[
+      {id:'f1',name:'Broiler batch 7',type:'broiler',start:'2026-09-19',birds:200,logs:sampleLogs('broiler')},
+      {id:'f2',name:'Layer house',type:'layer',start:'2026-03-02',birds:150,logs:sampleLogs('layer')}
+    ],
+    workers:[
+      {id:'w1',name:'Mary Banda',phone:'0977 000 111',rate:60},
+      {id:'w2',name:'Joseph Phiri',phone:'0966 000 222',rate:60},
+      {id:'w3',name:'Kelvin Mwale',phone:'0955 000 333',rate:40}
+    ],
+    equipment:[
+      {id:'e1',name:'Petrol water pump',type:'pump',ent:'crop',bought:'2025-08-10',cost:4500,every:90,lastService:'2026-07-20',logs:[{date:'2026-07-20',kind:'service',amount:250,note:'Oil change and spark plug'},{date:'2026-09-14',kind:'repair',amount:380,note:'New delivery hose'}]},
+      {id:'e2',name:'Knapsack sprayer',type:'sprayer',ent:'crop',bought:'2024-10-01',cost:900,every:60,lastService:'2026-09-01',logs:[{date:'2026-09-01',kind:'service',amount:60,note:'New nozzle and seals'}]},
+      {id:'e3',name:'Pair of oxen',type:'oxen',ent:'crop',bought:'2023-06-01',cost:14000,every:180,lastService:'2026-03-15',logs:[{date:'2026-03-15',kind:'service',amount:200,note:'Dipping and deworming'}]},
+      {id:'e4',name:'Feeders and drinkers',type:'poultry',ent:'poultry',bought:'2026-09-28',cost:800,every:30,lastService:'2026-10-01',logs:[]}
+    ],
+    coop:sampleCoop(),
+    runs:[
+      {id:'c1',tpl:'prePlanting',ent:'crop',date:'2026-10-10',checked:[0,1,2]},
+      {id:'c2',tpl:'layerWeek',ent:'poultry',date:'2026-10-15',checked:[0,1]},
+      {id:'c3',tpl:'vaccination',ent:'poultry',date:'2026-09-26',checked:[0,1,2,3,4,5]}
+    ],
+    customTpls:[],
+    work:[
+      {id:'j1',date:'2026-10-01',worker:'',people:5,days:2,rate:50,task:'Staking and weeding tomatoes',plot:'p4',ent:'crop',paid:500},
+      {id:'j2',date:'2026-10-01',worker:'w3',people:1,days:10,rate:40,task:'Feeding and cleaning broilers',plot:'f1',ent:'poultry',paid:400},
+      {id:'j3',date:'2026-10-13',worker:'w1',people:1,days:3,rate:60,task:'Clearing the main field',plot:'p1',ent:'crop',paid:0},
+      {id:'j4',date:'2026-10-13',worker:'w2',people:1,days:3,rate:60,task:'Clearing the main field',plot:'p1',ent:'crop',paid:0},
+      {id:'j5',date:'2026-10-11',worker:'w3',people:1,days:7,rate:40,task:'Feeding and cleaning broilers',plot:'f1',ent:'poultry',paid:0},
+      {id:'j6',date:'2026-10-16',worker:'',people:6,days:1,rate:50,task:'Weeding tomato beds',plot:'p4',ent:'crop',paid:0}
+    ],
+    budgetP:{chicks:4000,feed:16000,vacc:800,housing:1000,labour:800,transport:600,other:400},
+    loans:[
+      {id:'l1',lender:'Agro-dealer credit (fertilizer)',principal:7200,rate:0,start:'2026-10-08',due:'2027-06-15',repaid:[]},
+      {id:'l2',lender:'Village savings group',principal:5000,rate:10,start:'2026-09-01',due:'2027-03-01',repaid:[{date:'2026-10-01',amount:1000}]}
+    ]
+  };
+}
+
+const KEY='shemiko-ledger-v8';
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+if(!S || !S.plots) S = sample('en');
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+let tab='today', finTab='records', moneyFilter='all';
+const t = k => { const v = T[S.lang][k] ?? T.en[k] ?? k; return typeof v==='string' ? v.replace('{c}', sym()) : v; };
+const cropName = c => CROPS[c]?.[S.lang] || c;
+const catName = c => CATS[c]?.[S.lang] || c;
+
+const CUR = {
+  ZMW:{sym:'K',k:1,dec:0,en:'Zambian kwacha',fr:'Kwacha zambien'},
+  USD:{sym:'$',k:18.7,dec:2,en:'US dollar',fr:'Dollar américain'},
+  EUR:{sym:'€',k:21.5,dec:2,en:'Euro',fr:'Euro'},
+  GBP:{sym:'£',k:24.9,dec:2,en:'British pound',fr:'Livre sterling'},
+  ZAR:{sym:'R',k:1.05,dec:2,en:'South African rand',fr:'Rand sud-africain'},
+  BWP:{sym:'P',k:1.39,dec:2,en:'Botswana pula',fr:'Pula botswanais'},
+  MWK:{sym:'MK',k:0.0107,dec:0,en:'Malawian kwacha',fr:'Kwacha malawite'},
+  MZN:{sym:'MT',k:0.292,dec:2,en:'Mozambican metical',fr:'Metical mozambicain'},
+  NAD:{sym:'N$',k:1.05,dec:2,en:'Namibian dollar',fr:'Dollar namibien'},
+  AOA:{sym:'Kz',k:0.0205,dec:0,en:'Angolan kwanza',fr:'Kwanza angolais'},
+  ZWG:{sym:'ZiG',k:0.73,dec:2,en:'Zimbabwe Gold (ZiG)',fr:'Zimbabwe Gold (ZiG)'},
+  TZS:{sym:'TSh',k:0.0072,dec:0,en:'Tanzanian shilling',fr:'Shilling tanzanien'},
+  KES:{sym:'KSh',k:0.144,dec:0,en:'Kenyan shilling',fr:'Shilling kényan'},
+  UGX:{sym:'USh',k:0.0051,dec:0,en:'Ugandan shilling',fr:'Shilling ougandais'},
+  RWF:{sym:'RWF',k:0.0131,dec:0,en:'Rwandan franc',fr:'Franc rwandais'},
+  CDF:{sym:'FC',k:0.0066,dec:0,en:'Congolese franc',fr:'Franc congolais'},
+  ETB:{sym:'Br',k:0.134,dec:2,en:'Ethiopian birr',fr:'Birr éthiopien'},
+  NGN:{sym:'₦',k:0.0125,dec:0,en:'Nigerian naira',fr:'Naira nigérian'},
+  GHS:{sym:'GH₵',k:1.71,dec:2,en:'Ghanaian cedi',fr:'Cedi ghanéen'},
+  XOF:{sym:'FCFA',k:0.0328,dec:0,en:'West African CFA franc',fr:'Franc CFA (UEMOA)'},
+  XAF:{sym:'FCFA',k:0.0328,dec:0,en:'Central African CFA franc',fr:'Franc CFA (CEMAC)'}
+};
+const curCode = () => CUR[S.currency] ? S.currency : 'ZMW';
+const cur = () => CUR[curCode()];
+const kPer = code => (code!=='ZMW' && S.rates && S.rates[code] > 0) ? S.rates[code] : CUR[code].k;
+const sym = () => cur().sym;
+const num = n => Math.round(n).toLocaleString('en-GB');
+const fmt = x => { const d=cur().dec; return (x/kPer(curCode())).toLocaleString(S.lang==='fr'?'fr-FR':'en-GB',{minimumFractionDigits:d,maximumFractionDigits:d}).replace(/[\u202f\u00a0]/g,' '); };
+const toX = v => v * kPer(curCode());
+const inCur = x => +(x / kPer(curCode())).toFixed(cur().dec);
+const signed = n => (n<0?'−':'')+fmt(Math.abs(n));
+const plotById = pid => S.plots.find(p=>p.id===pid);
+const daysSince = d => Math.floor((TODAY - new Date(d+'T12:00:00'))/864e5);
+const loc = () => S.lang==='fr'?'fr-FR':'en-GB';
+const dayLabel = d => new Date(d+'T12:00:00').toLocaleDateString(loc(),{day:'numeric',month:'short'});
+const monthLabel = d => new Date(d).toLocaleDateString(loc(),{month:'long'});
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function stageOf(p){
+  const c = CROPS[p.crop], ds = daysSince(p.planted), f = ds/c.days;
+  const idx = ds<0 ? -1 : f<0.15?0:f<0.45?1:f<0.65?2:f<0.95?3:4;
+  return {idx, toPlant:Math.max(0,-ds), daysLeft:Math.max(0,c.days-Math.max(0,ds)), harvest:addDays(c.days,new Date(p.planted+'T12:00:00'))};
+}
+function flockById(id){ return (S.flocks||[]).find(f=>f.id===id); }
+function unitLabel(id){ const p=plotById(id); if(p) return esc(p.name)+' · '+cropName(p.crop); const f=flockById(id); if(f) return esc(f.name)+' · '+PTYPES[f.type][S.lang]; return t('wholeFarm'); }
+function flockStats(f){
+  const T=PTYPES[f.type], age=daysSince(f.start), deaths=f.logs.reduce((a,l)=>a+(l.deaths||0),0), alive=Math.max(0,f.birds-deaths);
+  const feed=f.logs.reduce((a,l)=>a+(l.feed||0),0);
+  const last7=f.logs.filter(l=>daysSince(l.date)>=0 && daysSince(l.date)<7);
+  const eggs7=last7.reduce((a,l)=>a+(l.eggs||0),0), eggDay=last7.length?eggs7/7:0;
+  const idx=age<0?-1:T.cuts.filter(c=>age>=c).length;
+  const sold=S.records.filter(r=>r.plot===f.id&&r.cat==='birdSale').length>0;
+  return {age,deaths,alive,mort:f.birds?deaths/f.birds:0,feed,eggDay,lay:alive?eggDay/alive:0,idx,toEnd:Math.max(0,T.end-age),endDate:addDays(T.end,new Date(f.start+'T12:00:00')),sold};
+}
+function equipStatus(e){ const next=addDays(e.every,new Date((e.lastService||e.bought)+'T12:00:00')); const d=-daysSince(next);
+  const repairs=e.logs.filter(l=>daysSince(l.date)<=365).reduce((a,l)=>a+(l.amount||0),0); return {next,d,repairs}; }
+function equipAlerts(){ return (S.equipment||[]).filter(e=>(e.ent||'crop')===(S.mode||'crop')).map(e=>({e,st:equipStatus(e)})).filter(x=>x.st.d<=7).sort((a,b)=>a.st.d-b.st.d); }
+function equipAlertList(){ const a=equipAlerts(); if(!a.length) return '';
+  return `<div class="list">${a.map(x=>`<div class="item"><span class="due ${x.st.d<0?'late':'soon'}">${x.st.d<0?(-x.st.d)+' '+(x.st.d===-1?t('dayOne'):t('days'))+' '+t('late'):x.st.d===0?t('todayW'):x.st.d===1?t('tomorrow'):t('inD')+' '+x.st.d+' '+t('days')}</span><div class="main"><div class="t">${esc(x.e.name)}${S.lang==='fr'?' :':':'} ${t('serviceDue')}</div><div class="s">${ETYPES[x.e.type][S.lang]}</div></div><button class="btn small line" data-service="${x.e.id}">${t('record')}</button></div>`).join('')}</div>`; }
+function memberStats(m){ const ha=m.crops.reduce((a,c)=>a+c.ha,0), birds=(m.birds.broiler||0)+(m.birds.layer||0);
+  const harvest=m.crops.reduce((a,c)=>a+(CROPS[c.crop]?CROPS[c.crop].yield*c.ha*1000:0),0), value=m.crops.reduce((a,c)=>a+(CROPS[c.crop]?CROPS[c.crop].yield*c.ha*1000*CROPS[c.crop].price:0),0);
+  const owed=m.loan?Math.max(0,m.loan.principal-m.loan.repaid):0, late=!!(m.loan && owed>0 && daysSince(m.loan.due)>0), quiet=daysSince(m.last)>=14;
+  return {ha,birds,harvest,value,owed,late,quiet}; }
+const coop = () => S.coop || (S.coop = sampleCoop());
+const scoreTag = sc => `<span class="due ${sc>=70?'ok':sc>=50?'soon':'late'}">${t('score')} ${sc}</span>`;
+const jobTotal = j => j.people*j.days*j.rate;
+const jobOwed = j => Math.max(0, jobTotal(j)-(j.paid||0));
+const workerById = id => (S.workers||[]).find(w=>w.id===id);
+function workerSum(id){ const js=(S.work||[]).filter(j=>(j.worker||'')===id); return {days:js.reduce((a,j)=>a+j.people*j.days,0), earned:js.reduce((a,j)=>a+jobTotal(j),0), paid:js.reduce((a,j)=>a+(j.paid||0),0), owed:js.reduce((a,j)=>a+jobOwed(j),0), jobs:js}; }
+function plotMoney(pid){ let c=0,r=0; S.records.filter(x=>x.plot===pid).forEach(x=> x.type==='cost'? c+=x.amount : r+=x.amount); return {c,r}; }
+function totals(list=S.records){ let c=0,r=0; list.forEach(x=> x.type==='cost'? c+=x.amount : r+=x.amount); return {c,r,net:r-c}; }
+function loanCalc(l){ const interest=l.principal*l.rate/100, total=l.principal+interest, paid=l.repaid.reduce((a,x)=>a+x.amount,0); return {interest,total,paid,left:Math.max(0,total-paid)}; }
+function costByCat(list=S.records){ const o={}; list.filter(r=>r.type==='cost').forEach(r=>o[r.cat]=(o[r.cat]||0)+r.amount); return o; }
+
+function dueTag(date, done){
+  if(done) return '';
+  const d = -daysSince(date);
+  if(d<0) return `<span class="due late">${-d} ${d===-1?t('dayOne'):t('days')} ${t('late')}</span>`;
+  if(d<=3) return `<span class="due soon">${d===0?t('todayW'):d===1?t('tomorrow'):t('inD')+' '+d+' '+t('days')}</span>`;
+  return `<span class="due later">${dayLabel(date)}</span>`;
+}
+function taskItem(x){
+  const p = plotById(x.plot);
+  return `<div class="item ${x.done?'done':''}"><button class="tick ${x.done?'on':''}" data-tick="${x.id}" aria-label="✓">✓</button>
+    <div class="main"><div class="t">${esc(x.text)}</div><div class="s">${unitLabel(x.plot)}</div></div>${dueTag(x.date,x.done)}</div>`;
+}
+function recItem(r){
+  const p = plotById(r.plot);
+  return `<div class="item"><div class="main"><div class="t">${catName(r.cat)}${r.note?` <span class="s">· ${esc(r.note)}</span>`:''}</div>
+    <div class="s">${dayLabel(r.date)} · ${p?esc(p.name):flockById(r.plot)?esc(flockById(r.plot).name):t('wholeFarm')}</div></div>
+    <div class="amt ${r.type==='sale'?'in':''}">${r.type==='sale'?'+':'−'}${fmt(r.amount)}</div></div>`;
+}
+
+const online = () => navigator.onLine !== false;
+function header(title){
+  return `<div class="bar"><span class="status ${online()?'':'off'}" id="net"><i></i>${online()?t('online'):t('offline')}</span>
+    <div class="tools"><button class="iconbtn" id="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 5h16v11H8l-4 4z"/></svg>${t('backup')}</button>
+    <button class="iconbtn" id="curBtn" aria-label="${esc(t('currency'))}">${curCode()}</button>
+    <div class="lang" role="group" aria-label="Language"><button data-lang="fr" class="${S.lang==='fr'?'on':''}">FR</button><button data-lang="en" class="${S.lang==='en'?'on':''}">EN</button></div></div></div>
+    <div class="seg modes" role="group" aria-label="${esc(t('section'))}">
+      <button data-mode="crop" class="${!isP()&&!isC()?'on':''}" aria-pressed="${!isP()&&!isC()}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9"/><path d="M12 13c-4 0-6-3-6-7 4 0 6 3 6 7z"/><path d="M12 11c0-4 2-7 6-7 0 4-2 7-6 7z"/></svg>${t('crops')}</button>
+      <button data-mode="poultry" class="${isP()?'on':''}" aria-pressed="${isP()}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c-4 0-7 6-7 11a7 7 0 0 0 14 0c0-5-3-11-7-11z"/></svg>${t('poultry')}</button>
+      <button data-mode="coop" class="${isC()?'on':''}" aria-pressed="${isC()}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2 20c0-3 3-5 6-5s6 2 6 5M10 20c0-3 3-5 6-5s6 2 6 5"/></svg>${t('coopTab')}</button>
+    </div>
+    <header class="top"><div class="eyebrow">${t('farm')}</div><h1>${title}</h1></header>
+    ${S.example?`<div class="demo">${t('example')} <button id="clear">${t('startOwn')}</button></div>`:''}`;
+}
+const sayBox = () => `<section><div class="say"><input id="say" placeholder="${esc(t('sayPh'))}" autocomplete="off" aria-label="${esc(t('sayPh'))}">
+  <button class="mic" id="mic" aria-label="Voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
+  <div class="hint" id="sayHint">${t('sayHint')}</div></section>`;
+
+function viewToday(){
+  if(isC()) return viewCoopHome();
+  if(isP()) return viewTodayP();
+  const X = totals(recsMode());
+  const open = tasksMode().filter(x=>!x.done).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
+  const ready = S.plots.filter(p=>stageOf(p).idx===4);
+  const max = Math.max(1,...S.plots.map(p=>{const m=plotMoney(p.id);return Math.max(m.c,m.r)}));
+  const today = TODAY.toLocaleDateString(loc(),{weekday:'long',day:'numeric',month:'long'});
+  return header(today.charAt(0).toUpperCase()+today.slice(1)) + sayBox() + `
+  <div class="net"><div class="eyebrow">${t('season')}</div><div class="big num">${signed(X.net)}<small>${sym()}</small></div>
+    <div class="row"><div><span>${t('moneyIn')}</span><b>${fmt(X.r)}</b></div><div><span>${t('spent')}</span><b>${fmt(X.c)}</b></div></div></div>
+  ${equipAlertList()}
+  ${ready.length?`<div class="list">${ready.map(p=>`<div class="item"><span class="due soon">${t('ready')}</span><div class="main"><div class="t">${esc(p.name)}${S.lang==="fr"?" :":":"} ${cropName(p.crop)} ${t('readyH')}</div><div class="s">${t('expect')} ${num(CROPS[p.crop].yield*p.ha*1000)} kg</div></div></div>`).join('')}</div>`:''}
+  <section><div class="sec-head"><h2>${t('nextJobs')}</h2><button class="link" data-go="tasks">${t('allJobs')}</button></div>
+    <div class="list">${open.length?open.map(taskItem).join(''):`<div class="empty">${t('noJobs')}</div>`}</div></section>
+  <section><h2>${t('byPlot')}</h2><div class="bars">${S.plots.length?S.plots.map(p=>{const m=plotMoney(p.id);return `<div class="bar-row"><div class="lbl">${cropName(p.crop)}</div><div class="track">
+      <i class="c" style="width:${m.c/max*100}%" title="${fmt(m.c)}"></i><i class="r" style="width:${m.r/max*100}%" title="${fmt(m.r)}"></i></div></div>`}).join(''):`<div class="empty">${t('addPlotChart')}</div>`}
+      <div class="legend"><span class="c">${t('spent')}</span><span class="r">${t('moneyIn')}</span></div></div></section>`;
+}
+
+function viewCoopHome(){
+  const C=coop(), M=C.members, st=M.map(m=>({m,s:memberStats(m)}));
+  const ha=st.reduce((a,x)=>a+x.s.ha,0), birds=st.reduce((a,x)=>a+x.s.birds,0), harvest=st.reduce((a,x)=>a+x.s.harvest,0), value=st.reduce((a,x)=>a+x.s.value,0);
+  const lent=M.reduce((a,m)=>a+(m.loan?m.loan.principal:0),0), repaid=M.reduce((a,m)=>a+(m.loan?m.loan.repaid:0),0);
+  const avgScore=Math.round(M.reduce((a,m)=>a+m.score,0)/Math.max(1,M.length));
+  const late=st.filter(x=>x.s.late), quiet=st.filter(x=>x.s.quiet);
+  return header(esc(C.name)) + `<div class="muted">${esc(C.district)} · ${M.length} ${t('membersN')}</div>
+  <div class="net"><div class="eyebrow">${t('coopHarvest')}</div><div class="big num">${num(harvest/1000)}<small>${t('tonnes')}</small></div>
+    <div class="row"><div><span>${t('estValue')}</span><b>${fmt(value)} ${sym()}</b></div><div><span>${t('avgScore')}</span><b>${avgScore}</b></div></div></div>
+  <div class="card"><div class="kv" style="border:0;padding:0"><div><span>${t('hectares')}</span><b>${num(ha)}</b></div><div><span>${t('birds')}</span><b>${num(birds)}</b></div><div><span>${t('creditOut')}</span><b>${fmt(lent-repaid)}</b></div></div></div>
+  <section><h2>${t('needAttention')}</h2><div class="list">${late.map(x=>`<div class="item"><span class="due late">${t('lateRepay')}</span><div class="main"><div class="t">${esc(x.m.name)}</div><div class="s">${t('owes')} ${fmt(x.s.owed)} ${sym()} · ${t('dueWas')} ${dayLabel(x.m.loan.due)}</div></div><button class="btn small line" data-member="${x.m.id}">${t('view')}</button></div>`).join('')}
+    ${quiet.filter(x=>!x.s.late).map(x=>`<div class="item"><span class="due soon">${t('quiet')}</span><div class="main"><div class="t">${esc(x.m.name)}</div><div class="s">${t('lastRecord')} ${dayLabel(x.m.last)}</div></div><button class="btn small line" data-member="${x.m.id}">${t('view')}</button></div>`).join('')}
+    ${!late.length&&!quiet.length?`<div class="empty">${t('allGood')}</div>`:''}</div></section>
+  <div class="muted">${t('coopNote')}</div>`;
+}
+function viewMembers(){
+  const C=coop();
+  return header(t('membersTitle')) + `<div class="muted">${esc(C.name)} · ${C.members.length} ${t('membersN')}</div>
+  <div class="plots">${C.members.map(m=>{ const s=memberStats(m);
+    return `<article class="card"><div class="hd"><div><div class="ttl">${esc(m.name)}</div><div class="meta">${esc(m.village)} · ${num(s.ha*10)/10} ha${s.birds?' · '+num(s.birds)+' '+t('birds'):''}</div></div>${scoreTag(m.score)}</div>
+      <div class="meta">${m.crops.map(c=>cropName(c.crop)+' '+c.ha+' ha').join(' · ')}</div>
+      <div class="kv"><div><span>${t('estHarvest')}</span><b>${num(s.harvest)} kg</b></div><div><span>${t('owes')}</span><b class="${s.late?'neg':''}">${fmt(s.owed)}</b></div><div><span>${t('lastRecord')}</span><b class="${s.quiet?'neg':''}">${dayLabel(m.last)}</b></div></div>
+      <button class="btn small line" data-member="${m.id}">${t('view')}</button></article>`}).join('')}</div>
+  <button class="btn" id="addMember">${t('addMember')}</button>`;
+}
+function viewCoopCredit(){
+  const M=coop().members.filter(m=>m.loan);
+  const lent=M.reduce((a,m)=>a+m.loan.principal,0), repaid=M.reduce((a,m)=>a+m.loan.repaid,0);
+  const dueNow=M.filter(m=>daysSince(m.loan.due)>=0), dueAmt=dueNow.reduce((a,m)=>a+m.loan.principal,0), dueRepaid=dueNow.reduce((a,m)=>a+m.loan.repaid,0);
+  return header(t('coopCredit')) + `<div class="net"><div class="eyebrow">${t('creditOut')}</div><div class="big num">${fmt(lent-repaid)}<small>${sym()}</small></div>
+    <div class="row"><div><span>${t('lent')}</span><b>${fmt(lent)}</b></div><div><span>${t('repayRate')}</span><b>${dueAmt?Math.round(dueRepaid/dueAmt*100)+'%':'—'}</b></div></div></div>
+  <div class="table-wrap"><table><thead><tr><th>${t('member')}</th><th>${t('lent')}</th><th>${t('repaid')}</th><th>${t('owes')}</th><th>${t('due')}</th></tr></thead><tbody>
+    ${M.map(m=>{const s=memberStats(m); return `<tr><td>${esc(m.name)}</td><td>${fmt(m.loan.principal)}</td><td>${fmt(m.loan.repaid)}</td><td class="${s.late?'neg':''}">${fmt(s.owed)}</td><td class="${s.late?'neg':''}">${s.owed?dayLabel(m.loan.due):t('paidOff')}</td></tr>`}).join('')}</tbody></table></div>
+  <div class="muted">${t('repayNote')}</div>`;
+}
+function viewOrders(){
+  const tot={}; coop().members.forEach(m=>m.crops.forEach(c=>(INPUTS[c.crop]||[]).forEach(([k,q,u,pr])=>{ tot[k]=tot[k]||{q:0,u,pr}; tot[k].q+=q*c.ha; })));
+  const birds=coop().members.reduce((a,m)=>a+(m.birds.layer||0),0), broilers=coop().members.reduce((a,m)=>a+(m.birds.broiler||0),0);
+  const rows=Object.entries(tot).map(([k,v])=>({name:t(k),q:Math.ceil(v.q),u:t(v.u),cost:Math.ceil(v.q)*v.pr}));
+  if(birds) rows.push({name:t('layerMash'),q:Math.ceil(birds*3.6/50),u:t('bags'),cost:Math.ceil(birds*3.6/50)*500});
+  if(broilers) rows.push({name:t('broilerFeed'),q:Math.ceil(broilers*4/50),u:t('bags'),cost:Math.ceil(broilers*4/50)*550});
+  const sum=rows.reduce((a,r)=>a+r.cost,0);
+  return header(t('groupOrder')) + `<div class="net"><div class="eyebrow">${t('orderTotal')}</div><div class="big num">${fmt(sum)}<small>${sym()}</small></div>
+    <div class="row"><div><span>${t('bulkPrice')}</span><b>${fmt(sum*0.9)}</b></div><div><span>${t('saving')}</span><b>${fmt(sum*0.1)}</b></div></div></div>
+  <div class="table-wrap"><table><thead><tr><th>${t('item')}</th><th>${t('qty')}</th><th>${t('estCost')}</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${r.name}</td><td>${num(r.q)} ${r.u}</td><td>${fmt(r.cost)}</td></tr>`).join('')}<tr class="total"><td>${t('total')}</td><td></td><td>${fmt(sum)}</td></tr></tbody></table></div>
+  <div class="muted">${t('orderNote')}</div>`;
+}
+function viewTodayP(){
+  const X = totals(recsMode()), fl=S.flocks||[];
+  const st = fl.map(f=>({f,s:flockStats(f)}));
+  const alive = st.reduce((a,x)=>a+x.s.alive,0);
+  const layers = st.filter(x=>x.f.type==='layer'&&x.s.idx>=3);
+  const eggDay = layers.reduce((a,x)=>a+x.s.eggDay,0), layAlive=layers.reduce((a,x)=>a+x.s.alive,0);
+  const open = tasksMode().filter(x=>!x.done).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
+  const alerts = st.filter(x=>x.f.type!=='layer' && !x.s.sold && x.s.idx>=0 && x.s.toEnd<=14);
+  const days=[]; for(let i=6;i>=0;i--) days.push(addDays(-i));
+  const eggsBy = days.map(d=>layers.reduce((a,x)=>a+x.f.logs.filter(l=>l.date===d).reduce((b,l)=>b+(l.eggs||0),0),0));
+  const max=Math.max(1,...eggsBy);
+  const today = TODAY.toLocaleDateString(loc(),{weekday:'long',day:'numeric',month:'long'});
+  return header(today.charAt(0).toUpperCase()+today.slice(1)) + sayBox() + `
+  <div class="net"><div class="eyebrow">${t('pSeason')}</div><div class="big num">${signed(X.net)}<small>${sym()}</small></div>
+    <div class="row"><div><span>${t('moneyIn')}</span><b>${fmt(X.r)}</b></div><div><span>${t('spent')}</span><b>${fmt(X.c)}</b></div></div></div>
+  <div class="card"><div class="kv" style="border:0;padding:0"><div><span>${t('birdsAlive')}</span><b>${num(alive)}</b></div><div><span>${t('eggsDay')}</span><b>${num(eggDay)}</b></div><div><span>${t('layRate')}</span><b>${layAlive?Math.round(eggDay/layAlive*100)+'%':'—'}</b></div></div>
+    <button class="btn small" data-log="">${t('logToday')}</button></div>
+  ${equipAlertList()}
+  ${alerts.length?`<div class="list">${alerts.map(x=>`<div class="item"><span class="due soon">${x.s.toEnd?t('inD')+' '+x.s.toEnd+' '+t('days'):t('ready')}</span><div class="main"><div class="t">${esc(x.f.name)}${S.lang==='fr'?' :':':'} ${t('sellSoon')}</div><div class="s">${num(x.s.alive)} ${t('birds')} · ${t('estValue')} ${fmt(x.s.alive*PTYPES[x.f.type].birdPrice)} ${sym()}</div></div></div>`).join('')}</div>`:''}
+  <section><div class="sec-head"><h2>${t('nextJobs')}</h2><button class="link" data-go="tasks">${t('allJobs')}</button></div>
+    <div class="list">${open.length?open.map(taskItem).join(''):`<div class="empty">${t('noJobs')}</div>`}</div></section>
+  ${layers.length?`<section><h2>${t('eggs7')}</h2><div class="bars"><div class="eggbars">${eggsBy.map((v,i)=>`<div class="eb"><span class="num">${v}</span><i style="height:${Math.round(v/max*90)}px"></i><em>${new Date(days[i]+'T12:00:00').toLocaleDateString(loc(),{weekday:'short'})}</em></div>`).join('')}</div></div></section>`:''}`;
+}
+
+function viewFlocks(){
+  const fl=S.flocks||[]; const alive=fl.reduce((a,f)=>a+flockStats(f).alive,0);
+  return header(t('myFlocks')) + `<div class="muted">${fl.length} ${t('flocksN')} · <span class="num">${num(alive)}</span> ${t('birds')}</div>
+  <div class="plots">${fl.map(f=>{
+    const T=PTYPES[f.type], s=flockStats(f), m=plotMoney(f.id), stg=T.stages[S.lang];
+    const tag = f.type==='layer' ? (s.idx>=3?`<span class="due ok">${stg[3]}</span>`:`<span class="due later">${t('layIn')} ${s.toEnd} ${t('days')}</span>`)
+      : s.sold ? `<span class="due ok">${t('sold')}</span>` : s.toEnd===0 ? `<span class="due soon">${t('ready')}</span>` : `<span class="due later">${t('sellIn')} ${s.toEnd} ${t('days')}</span>`;
+    const second = f.type==='layer'
+      ? `<div><span>${t('eggsDay')}</span><b>${num(s.eggDay)}</b></div><div><span>${t('layRate')}</span><b>${s.idx>=3?Math.round(s.lay*100)+'%':'—'}</b></div><div><span>${t('moneyIn')}</span><b>${fmt(m.r)}</b></div>`
+      : `<div><span>${t('spent')}</span><b>${fmt(m.c)}</b></div><div><span>${t('estValue')}</span><b>${fmt(s.alive*T.birdPrice)}</b></div><div><span>${t('estProfit')}</span><b class="${s.alive*T.birdPrice-m.c>=0?'pos':'neg'}">${signed(s.alive*T.birdPrice-m.c+m.r)}</b></div>`;
+    return `<article class="card"><div class="hd"><div><div class="ttl">${esc(f.name)}</div><div class="meta">${T[S.lang]} · ${t('started')} ${dayLabel(f.start)} · ${t('week')} ${Math.floor(Math.max(0,s.age)/7)+1}</div></div>${tag}</div>
+      <div class="stages" style="grid-template-columns:repeat(${stg.length},1fr)">${stg.map((x,i)=>`<span class="${i<s.idx?'on':i===s.idx?'cur':''}"></span>`).join('')}</div>
+      <div class="stagelbl"><b>${s.idx<0?'—':stg[Math.min(s.idx,stg.length-1)]}</b><span>${t('day')} ${Math.max(0,s.age)}</span></div>
+      <div class="kv"><div><span>${t('alive')}</span><b>${num(s.alive)} / ${num(f.birds)}</b></div><div><span>${t('mortality')}</span><b class="${s.mort>0.05?'neg':''}">${(s.mort*100).toFixed(1)}%</b></div><div><span>${t('feedUsed')}</span><b>${num(s.feed)} kg</b></div></div>
+      <div class="kv">${second}</div>
+      <button class="btn small line" data-log="${f.id}">${t('logToday')}</button></article>`}).join('')||`<div class="list"><div class="empty">${t('noFlocks')}</div></div>`}</div>
+  <button class="btn" id="addFlock">${t('addFlock')}</button><div class="muted">${t('pNote')}</div>`;
+}
+
+function viewPlots(){
+  if(isC()) return viewMembers();
+  if(isP()) return viewFlocks();
+  const ha = S.plots.reduce((a,p)=>a+p.ha,0);
+  return header(t('myPlots')) + `<div class="muted">${S.plots.length} ${t('plots')} · <span class="num">${ha.toFixed(2)}</span> ${t('inTotal')}</div>
+  <div class="plots">${S.plots.map(p=>{
+    const st=stageOf(p), m=plotMoney(p.id), c=CROPS[p.crop], est=c.yield*p.ha*1000, proj=est*c.price-m.c;
+    return `<article class="card"><div class="hd"><div><div class="ttl">${cropName(p.crop)}</div><div class="meta">${esc(p.name)} · <span class="num">${p.ha}</span> ha · ${st.idx<0?t('plantOn'):t('planted')} ${dayLabel(p.planted)}</div></div>
+      ${st.idx===4?`<span class="due soon">${t('ready')}</span>`:st.idx<0?`<span class="due later">${t('plantIn')} ${st.toPlant} ${t('days')}</span>`:`<span class="due later">${st.daysLeft} ${t('daysLeft')}</span>`}</div>
+      <div class="stages">${t('stages').map((s,i)=>`<span class="${i<st.idx?'on':i===st.idx?'cur':''}"></span>`).join('')}</div>
+      <div class="stagelbl"><b>${st.idx<0?t('notPlanted'):t('stages')[st.idx]}</b><span>${st.idx<0?c.days+' '+t('days'):t('day')+' '+daysSince(p.planted)+' '+t('of')+' '+c.days}</span></div>
+      <div class="kv"><div><span>${t('spent')}</span><b>${fmt(m.c)}</b></div><div><span>${t('estYield')}</span><b>${num(est)} kg</b></div>
+      <div><span>${t('estProfit')}</span><b class="${proj>=0?'pos':'neg'}">${signed(proj)}</b></div></div></article>`}).join('')}</div>
+  <button class="btn" id="addPlot">${t('addPlot')}</button><div class="muted">${t('estNote')}</div>`;
+}
+
+/* ---------- Finance ---------- */
+function forecast(){
+  const months=[]; for(let i=0;i<4;i++){ const d=new Date(TODAY.getFullYear(),TODAY.getMonth()+i,1); months.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:monthLabel(d),inn:0,out:0}); }
+  const mk = ds => ds.slice(0,7); const find = k => months.find(m=>m.key===k);
+  S.plots.forEach(p=>{
+    const c=CROPS[p.crop], st=stageOf(p), value=c.yield*p.ha*1000*c.price, sold=plotMoney(p.id).r, rest=Math.max(0,value-sold);
+    const when = st.idx===4 ? addDays(14) : addDays(14,new Date(st.harvest+'T12:00:00'));
+    const m=find(mk(when)); if(m) m.inn+=rest;
+  });
+  (S.flocks||[]).forEach(f=>{ const T=PTYPES[f.type], s=flockStats(f);
+    if(f.type==='layer'){ months.forEach((m,i)=>{ const y=+m.key.slice(0,4), mo=+m.key.slice(5,7), dim=new Date(y,mo,0).getDate();
+        const startDay = i===0 ? TODAY.getDate() : 1; const layStart=new Date(s.endDate+'T12:00:00');
+        let n=0; for(let d=startDay; d<=dim; d++){ if(new Date(y,mo-1,d)>=layStart) n++; }
+        const rate = s.idx>=3 && s.lay>0 ? s.lay : T.layRate; m.inn += s.alive*rate*n*T.eggPrice; }); }
+    else if(!s.sold && s.alive){ const when = s.toEnd===0 ? addDays(7) : s.endDate; const m=find(mk(when)); if(m) m.inn += s.alive*T.birdPrice; }
+  });
+  months[0].out += (S.work||[]).reduce((a,j)=>a+jobOwed(j),0);
+  S.loans.forEach(l=>{ const L=loanCalc(l); if(!L.left) return; const k=mk(l.due)<months[0].key?months[0].key:mk(l.due); const m=find(k); if(m) m.out+=L.left; });
+  const cbc=costByCat(S.records.filter(r=>entOf(r)==='crop')), cbp=costByCat(S.records.filter(r=>entOf(r)==='poultry')); let remain=0;
+  COSTS.forEach(k=>remain+=Math.max(0,((S.budget||{})[k]||0)-(cbc[k]||0))); PCOSTS.forEach(k=>remain+=Math.max(0,((S.budgetP||{})[k]||0)-(cbp[k]||0)));
+  months[0].out+=remain*0.5; months[1].out+=remain*0.5;
+  const loansIn = S.loans.reduce((a,l)=>a+l.principal,0), repaid = S.loans.reduce((a,l)=>a+loanCalc(l).paid,0);
+  const cash = totals().net + loansIn - repaid;
+  let bal=cash; months.forEach(m=>{bal+=m.inn-m.out; m.bal=bal;});
+  return {months,cash};
+}
+function score(){
+  const ms=new Set(S.records.map(r=>r.date.slice(0,7))); const first=S.records.reduce((m,r)=>r.date<m?r.date:m,iso(TODAY)); const span=Math.max(1,(TODAY.getFullYear()-+first.slice(0,4))*12+TODAY.getMonth()+1-+first.slice(5,7)+1);
+  const a=Math.min(1,ms.size/span);
+  const paidLoans=S.loans.filter(l=>l.repaid.length); const b=S.loans.length? S.loans.filter(l=>loanCalc(l).left===0 || -daysSince(l.due)>=0).length/S.loans.length : 1;
+  const c=totals().net>0?1:0.3; const d=Object.values(S.budget||{}).some(v=>v>0)?1:0;
+  return {total:Math.round(a*35+b*35+c*20+d*10), parts:[a,b,c,d]};
+}
+function viewFinance(){
+  if(isC()) return viewCoopCredit();
+  const X = totals(recsMode()), CL = costsFor(S.mode), BG = budgetMode();
+  const segs = [['records',t('records')],['budget',t('budget')],['loans',t('loans')],['workers',t('workers')],['forecast',t('forecast')]];
+  let body='';
+  if(finTab==='records'){
+    let rs=[...recsMode()].sort((a,b)=>b.date.localeCompare(a.date)); if(moneyFilter!=='all') rs=rs.filter(r=>r.type===moneyFilter);
+    const cats=Object.entries(costByCat(recsMode())).sort((a,b)=>b[1]-a[1]), top=cats[0];
+    body=`<div class="net"><div class="eyebrow">${isP()?t('pProfit'):t('profit')}</div><div class="big num">${signed(X.net)}<small>${sym()}</small></div>
+      <div class="row"><div><span>${t('biggest')}</span><b>${top?catName(top[0]):'—'}</b></div><div><span>${t('share')}</span><b>${top&&X.c?Math.round(top[1]/X.c*100)+'%':'—'}</b></div></div></div>
+      <div class="seg">${[['all',t('all')],['cost',t('spent')],['sale',t('moneyIn')]].map(([k,l])=>`<button class="${moneyFilter===k?'on':''}" data-filter="${k}">${l}</button>`).join('')}</div>
+      <div class="list">${rs.length?rs.map(recItem).join(''):`<div class="empty">${t('nothing')}</div>`}</div>`;
+  } else if(finTab==='budget'){
+    const cb=costByCat(recsMode()); const tb=CL.reduce((a,k)=>a+(BG[k]||0),0);
+    body=`<section><div class="sec-head"><h2>${isP()?t('pBudget'):t('budgetTitle')}</h2><button class="link" id="editBudget">${t('editBudget')}</button></div>
+      <div class="card"><div class="kv" style="border:0;padding:0"><div><span>${t('planned')}</span><b>${fmt(tb)}</b></div><div><span>${t('actual')}</span><b>${fmt(X.c)}</b></div><div><span>${t('left')}</span><b class="${tb-X.c>=0?'pos':'neg'}">${signed(tb-X.c)}</b></div></div></div>
+      <div class="bars">${CL.filter(k=>BG[k]||cb[k]).map(k=>{const b=BG[k]||0,a=cb[k]||0,scale=Math.max(b,a,1),over=a>b;
+        return `<div class="budget-row"><div class="top"><b>${catName(k)}</b><span class="num ${over?'neg':''}">${fmt(a)} / ${fmt(b)}${over?' · '+t('over'):''}</span></div>
+        <div class="btrack"><i class="${over?'over':''}" style="width:${a/scale*100}%"></i>${b?`<u style="left:calc(${b/scale*100}% - 1px)"></u>`:''}</div></div>`}).join('')}
+        <div class="legend"><span class="b">${t('planned')}</span></div></div></section>`;
+  } else if(finTab==='workers'){
+    const W=S.workers||[], J=[...(S.work||[])].sort((a,b)=>b.date.localeCompare(a.date));
+    const owed=J.reduce((a,j)=>a+jobOwed(j),0), paid=J.reduce((a,j)=>a+(j.paid||0),0), days=J.reduce((a,j)=>a+j.people*j.days,0);
+    const card = (id,name,sub) => { const w=workerSum(id); if(!id && !w.jobs.length) return '';
+      return `<article class="card"><div class="hd"><div><div class="ttl">${esc(name)}</div><div class="meta">${sub}</div></div>${w.owed?`<span class="due late">${t('owes')} ${fmt(w.owed)}</span>`:`<span class="due ok">${t('allPaid')}</span>`}</div>
+        <div class="kv"><div><span>${t('daysWorked')}</span><b>${num(w.days)}</b></div><div><span>${t('earned')}</span><b>${fmt(w.earned)}</b></div><div><span>${t('paidW')}</span><b>${fmt(w.paid)}</b></div></div>
+        <div class="two"><button class="btn small line" data-work="${id||'casual'}">${t('addWork')}</button>${w.owed?`<button class="btn small" data-pay="${id||'casual'}">${t('pay')} ${fmt(w.owed)}</button>`:'<span></span>'}</div></article>`; };
+    body=`<div class="net"><div class="eyebrow">${t('owedWorkers')}</div><div class="big num">${fmt(owed)}<small>${sym()}</small></div>
+      <div class="row"><div><span>${t('paidSeason')}</span><b>${fmt(paid)}</b></div><div><span>${t('personDays')}</span><b>${num(days)}</b></div></div></div>
+      <div class="two"><button class="btn" data-work="">${t('addWork')}</button><button class="btn line" id="addWorker">${t('addWorker')}</button></div>
+      <div class="plots">${W.map(w=>card(w.id,w.name,`${esc(w.phone||'')}${w.phone?' · ':''}${fmt(w.rate)} ${sym()} ${t('perDay')}`)).join('')}${card('',t('casual'),t('casualSub'))}</div>
+      <section><h2>${t('workLog')}</h2><div class="list">${J.length?J.map(j=>{const w=workerById(j.worker);
+        return `<div class="item"><div class="main"><div class="t">${esc(j.task)}</div><div class="s">${dayLabel(j.date)} · ${w?esc(w.name):t('casual')} · ${j.people>1?j.people+' × ':''}${j.days} ${j.days===1?t('dayOne'):t('daysShort')} × ${fmt(j.rate)} · ${unitLabel(j.plot)}</div></div>
+        <div style="text-align:right"><div class="amt">${fmt(jobTotal(j))}</div>${jobOwed(j)?`<span class="due late">${t('owedW')}</span>`:`<span class="due ok">${t('paidW')}</span>`}</div></div>`}).join(''):`<div class="empty">${t('noWork')}</div>`}</div></section>
+      <div class="muted">${t('workNote')}</div>`;
+  } else if(finTab==='loans'){
+    const owed=S.loans.reduce((a,l)=>a+loanCalc(l).left,0);
+    body=`<div class="net"><div class="eyebrow">${t('owed')}</div><div class="big num">${fmt(owed)}<small>${sym()}</small></div>
+      <div class="row"><div><span>${t('borrowed')}</span><b>${fmt(S.loans.reduce((a,l)=>a+l.principal,0))}</b></div><div><span>${t('repaid')}</span><b>${fmt(S.loans.reduce((a,l)=>a+loanCalc(l).paid,0))}</b></div></div></div>
+      ${S.loans.length?S.loans.map(l=>{const L=loanCalc(l);return `<article class="card"><div class="hd"><div><div class="ttl">${esc(l.lender)}</div><div class="meta">${t('startDate')} ${dayLabel(l.start)} · ${l.rate}%</div></div>
+        ${L.left===0?`<span class="due ok">${t('paidOff')}</span>`:`<span>${dueTag(l.due,false)}</span>`}</div>
+        <div class="progress"><i style="width:${L.total?L.paid/L.total*100:0}%"></i></div>
+        <div class="kv"><div><span>${t('totalDue')}</span><b>${fmt(L.total)}</b></div><div><span>${t('repaid')}</span><b>${fmt(L.paid)}</b></div><div><span>${t('owed')}</span><b class="${L.left?'neg':'pos'}">${fmt(L.left)}</b></div></div>
+        ${L.left?`<button class="btn small line" data-repay="${l.id}">${t('repay')}</button>`:''}</article>`}).join(''):`<div class="list"><div class="empty">${t('noLoans')}</div></div>`}
+      <button class="btn" id="addLoan">${t('addLoan')}</button>`;
+  } else {
+    const F=forecast(), sc=score(), low=F.months.find(m=>m.bal<0), R=30, C=2*Math.PI*R;
+    body=`<div class="card"><div class="muted">${t('cashNow')} · ${t('wholeFarm')}</div><div class="num" style="font-size:1.6rem;font-weight:500">${signed(F.cash)} <span class="muted">${sym()}</span></div>
+      <div class="${low?'neg':'pos'}" style="font-weight:700;font-size:.9rem">${low?t('lowCash')+' '+low.label:t('okCash')}</div></div>
+      <div class="table-wrap"><table><thead><tr><th>${t('month')}</th><th>${t('fcIn')}</th><th>${t('fcOut')}</th><th>${t('fcBal')}</th></tr></thead><tbody>
+      ${F.months.map(m=>`<tr><td>${m.label}</td><td class="pos">+${fmt(m.inn)}</td><td>−${fmt(m.out)}</td><td class="${m.bal<0?'neg':''}">${signed(m.bal)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="muted">${t('fcNote')}</div>
+      <section><h2>${t('scoreTitle')}</h2><div class="card score">
+        <svg class="ring" viewBox="0 0 72 72"><circle cx="36" cy="36" r="${R}" fill="none" stroke="var(--line)" stroke-width="8"/><circle cx="36" cy="36" r="${R}" fill="none" stroke="var(--gold)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C*sc.total/100} ${C}" transform="rotate(-90 36 36)"/><text x="36" y="42" text-anchor="middle" font-family="var(--display)" font-weight="800" font-size="20" fill="var(--ink)">${sc.total}</text></svg>
+        <div><div style="font-weight:700;font-size:.9rem">${t('scoreWhy')}</div><ul>${['sc1','sc2','sc3','sc4'].map((k,i)=>`<li>${sc.parts[i]>=0.99?'✓':'○'} ${t(k)}</li>`).join('')}</ul></div></div></section>`;
+  }
+  return header(t('fin')) + `<div class="seg" role="tablist">${segs.map(([k,l])=>`<button class="${finTab===k?'on':''}" data-fin="${k}">${l}</button>`).join('')}</div>` + body;
+}
+
+let calTab='jobs';
+function tplOf(r){ if(TPLS[r.tpl]) { const T=TPLS[r.tpl]; return {title:T[S.lang],items:T.items[S.lang]}; } const c=(S.customTpls||[]).find(x=>x.id===r.tpl); return c?{title:c.title,items:c.items}:{title:'—',items:[]}; }
+function viewChecklists(){
+  const runs=(S.runs||[]).filter(r=>(r.ent||'crop')===(S.mode||'crop')).sort((a,b)=>b.date.localeCompare(a.date));
+  const open=runs.filter(r=>r.checked.length<tplOf(r).items.length), fin=runs.filter(r=>r.checked.length>=tplOf(r).items.length);
+  const card=r=>{ const T=tplOf(r), n=T.items.length, k=r.checked.length;
+    return `<article class="card"><div class="hd"><div><div class="ttl">${esc(T.title)}</div><div class="meta">${t('startedOn')} ${dayLabel(r.date)}</div></div><span class="due later">${k} / ${n}</span></div>
+      <div class="progress"><i style="width:${n?k/n*100:0}%"></i></div>
+      <div class="list">${T.items.map((it,i)=>{const on=r.checked.includes(i); return `<div class="item ${on?'done':''}"><button class="tick ${on?'on':''}" data-chk="${r.id}:${i}" aria-label="${esc(it)}" aria-pressed="${on}">✓</button><div class="main"><div class="t">${esc(it)}</div></div></div>`}).join('')}</div></article>`; };
+  return `<button class="btn" id="startChk">${t('startChk')}</button>
+    <div class="plots">${open.map(card).join('')||`<div class="list"><div class="empty">${t('noChk')}</div></div>`}</div>
+    ${fin.length?`<section><h2>${t('finished')}</h2><div class="list">${fin.map(r=>`<div class="item"><span class="due ok">✓</span><div class="main"><div class="t">${esc(tplOf(r).title)}</div><div class="s">${dayLabel(r.date)} · ${tplOf(r).items.length} ${t('steps')}</div></div><button class="btn small line" data-again="${r.tpl}">${t('again')}</button></div>`).join('')}</div></section>`:''}`;
+}
+function viewEquip(){
+  const E=S.equipment||[];
+  const tot=E.reduce((a,e)=>a+equipStatus(e).repairs,0), due=E.filter(e=>equipStatus(e).d<=7).length;
+  return `<div class="net"><div class="eyebrow">${t('equipCost')}</div><div class="big num">${fmt(tot)}<small>${sym()}</small></div>
+    <div class="row"><div><span>${t('items')}</span><b>${E.length}</b></div><div><span>${t('dueSoon')}</span><b>${due}</b></div></div></div>
+    <div class="plots">${E.map(e=>{ const st=equipStatus(e);
+      const tag = st.d<0?`<span class="due late">${t('serviceLate')}</span>`:st.d<=7?`<span class="due soon">${t('serviceSoon')}</span>`:`<span class="due ok">${t('okW')}</span>`;
+      return `<article class="card"><div class="hd"><div><div class="ttl">${esc(e.name)}</div><div class="meta">${ETYPES[e.type][S.lang]} · ${e.ent==='poultry'?t('poultry'):t('crops')} · ${t('boughtOn')} ${new Date(e.bought+'T12:00:00').toLocaleDateString(loc(),{month:'short',year:'numeric'})}</div></div>${tag}</div>
+        <div class="kv"><div><span>${t('value')}</span><b>${fmt(e.cost)}</b></div><div><span>${t('repairs12')}</span><b>${fmt(st.repairs)}</b></div><div><span>${t('nextService')}</span><b>${dayLabel(st.next)}</b></div></div>
+        ${e.logs.length?`<div class="muted">${[...e.logs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,2).map(l=>`${dayLabel(l.date)} · ${l.kind==='repair'?t('repair'):t('service')}${l.note?': '+esc(l.note):''} · ${fmt(l.amount)}`).join('<br>')}</div>`:''}
+        <button class="btn small line" data-service="${e.id}">${t('recordService')}</button></article>`}).join('')||`<div class="list"><div class="empty">${t('noEquip')}</div></div>`}</div>
+    <button class="btn" id="addEquip">${t('addEquip')}</button><div class="muted">${t('equipNote')}</div>`;
+}
+function viewTasks(){
+  if(isC()) return viewOrders();
+  const seg = `<div class="seg">${[['jobs',t('jobsTab')],['chk',t('chkTab')],['equip',t('equipTab')]].map(([k,l])=>`<button class="${calTab===k?'on':''}" data-cal="${k}">${l}</button>`).join('')}</div>`;
+  if(calTab==='equip') return header(t('calTitle')) + seg + viewEquip();
+  if(calTab==='chk') return header(t('calTitle')) + seg + viewChecklists();
+  const ts=[...tasksMode()].sort((a,b)=>a.done-b.done || a.date.localeCompare(b.date));
+  return header(t('calTitle')) + seg + `<div class="list">${ts.length?ts.map(taskItem).join(''):`<div class="empty">${t('noTasks')}</div>`}</div>
+  <section><h2>${t('coming')}</h2><div class="list">${isP()?(S.flocks||[]).map(f=>{const s=flockStats(f);
+    const line = f.type==='layer' ? (s.idx>=3?`${t('layingNow')}: ${num(s.eggDay)} ${t('eggsPerDay')}`:`${t('pointOfLay')} ${dayLabel(s.endDate)}`) : s.sold?t('sold'):`${t('sellAround')} ${dayLabel(s.endDate)}`;
+    return `<div class="item"><div class="main"><div class="t">${esc(f.name)}${S.lang==='fr'?' :':':'} ${line}</div><div class="s">${PTYPES[f.type][S.lang]}</div></div></div>`}).join(''):S.plots.map(p=>{const st=stageOf(p);
+    return `<div class="item"><div class="main"><div class="t">${cropName(p.crop)}${S.lang==="fr"?" :":":"} ${st.idx===4?t('harvestNow'):t('harvestAround')+' '+dayLabel(st.harvest)}</div><div class="s">${esc(p.name)}</div></div></div>`}).join('')}</div></section>`;
+}
+
+function render(){
+  document.documentElement.lang = S.lang;
+  document.getElementById('app').innerHTML = ({today:viewToday,plots:viewPlots,finance:viewFinance,tasks:viewTasks}[tab])();
+  document.querySelectorAll('nav.tabs [data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  const lbl={today:isC()?'tabOverview':'tabToday',plots:isC()?'tabMembers':isP()?'tabFlocks':'tabPlots',finance:isC()?'tabCredit':'tabFinance',tasks:isC()?'tabOrders':'tabTasks'};
+  Object.entries(lbl).forEach(([k,v])=>{ const e=document.querySelector(`nav.tabs [data-tab="${k}"] span`); if(e) e.dataset.t=v; });
+  document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t(e.dataset.t));
+  document.querySelectorAll('[data-tl]').forEach(e=>e.setAttribute('aria-label',t(e.dataset.tl)));
+}
+function toast(msg){ document.querySelectorAll('.toast').forEach(x=>x.remove()); const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
+
+/* ---------- Sentence / SMS-command parser ---------- */
+function parseSentence(raw){
+  const s = ' '+raw.toLowerCase().replace(/[’']/g,"'")+' ';
+  const has = list => list.some(w => new RegExp('(^|[^a-z0-9à-ÿœ])'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?=$|[^a-z0-9à-ÿœ])').test(s));
+  let type = null; const first = s.trim().split(/\s+/)[0];
+  if(['dep','spend'].includes(first)) type='cost'; else if(['ven','sell'].includes(first)) type='sale'; else if(['tac','job'].includes(first)) type='task';
+  if(!type){
+    if(has(['sold','sell','selling','received','got paid','vendu','vendre','vente','reçu','recu','encaissé','avance','advance','deposit'])) type='sale';
+    else if(has(['bought','buy','paid','pay','spent','cost','hired','acheté','achete','payé','paye','dépensé','depense','coûté','loué'])) type='cost';
+    else if(has(['need to','must','remind','tomorrow','todo','il faut','faut','demain','rappel','à faire','a faire'])) type='task';
+  }
+  // amounts: "52 000", "52000", "52k", "50 mille"
+  let amount=null; const nums=[];
+  s.replace(/(\d[\d\s.,]*\d|\d)\s*(k|mille|thousand)?\b/g,(m,n,mult)=>{ let v=parseFloat(n.replace(/[\s.]/g,'').replace(',','.')); if(mult) v*=1000; nums.push({v,unit:/\b(kg|sacs?|bags?|ha)\b/.test(s.slice(s.indexOf(m)+m.length, s.indexOf(m)+m.length+6))}); return m;});
+  const money = nums.filter(n=>!n.unit); if(money.length) amount=Math.max(...money.map(n=>n.v));
+  let cat=null;
+  const order = Object.keys(CATS); if(S.lang==='fr'){ order.splice(order.indexOf('plough'),1); order.unshift('plough'); }
+  const kwFor = k => k==='plough'&&S.lang==='fr' ? [...CATS[k].kw,'labour'] : k==='labour'&&S.lang==='fr' ? CATS[k].kw.filter(w=>w!=='labour') : CATS[k].kw;
+  for(const k of order) if(has(kwFor(k))){ cat=k; break; }
+  if(!cat){ for(const k of order) if(has([CATS[k].code.toLowerCase()])){cat=k;break;} }
+  let plot='';
+  for(const p of S.plots){ const c=CROPS[p.crop]; if(has([c.en.toLowerCase(),c.fr.toLowerCase(),c.code.toLowerCase(),c.fr.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')])){ plot=p.id; break; } }
+  if(!type) type = amount!=null ? 'cost' : 'task';
+  const pw = has(['chick','chicks','chicken','chickens','broiler','broilers','layer','layers','egg','eggs','tray','trays','poultry','birds','poulet','poulets','poussin','poussins','pondeuse','pondeuses','œufs','oeufs','volaille','volailles']) || PCOSTS.slice(0,4).includes(cat);
+  const ent = pw ? 'poultry' : (S.mode==='poultry' && !plot ? 'poultry' : 'crop');
+  if(ent==='poultry'){
+    plot=''; for(const f of (S.flocks||[])){ const T=PTYPES[f.type]; if(has([T.en.toLowerCase(), T.en.toLowerCase().replace(/s$/,''), T.fr.toLowerCase()])){ plot=f.id; break; } }
+    if(!plot && has(['egg','eggs','tray','trays','œufs','oeufs'])){ const L=(S.flocks||[]).find(f=>f.type==='layer'); if(L) plot=L.id; }
+    if(type==='sale') cat = has(['egg','eggs','tray','trays','œufs','oeufs']) ? 'eggSale' : 'birdSale';
+    if(type==='cost' && !PCOSTS.includes(cat)) cat='other';
+  } else {
+    if(type==='sale' && !SALES.includes(cat)) cat = cat==='advance'?'advance':'harvest';
+    if(type==='cost' && !COSTS.includes(cat)) cat='other';
+  }
+  let date=iso(TODAY); if(/\b(tomorrow|demain)\b/.test(s)) date=addDays(1); if(/\b(yesterday|hier)\b/.test(s)) date=addDays(-1);
+  const note = raw.trim().slice(0,80);
+  return {type,amount,cat,plot,date,note,ent,text:raw.trim().replace(/^(tac|job)\s+/i,'')};
+}
+
+/* ---------- Voice ---------- */
+let rec=null;
+function startVoice(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const hint=document.getElementById('sayHint'), mic=document.getElementById('mic');
+  if(!SR){ hint.textContent=t('micNo'); document.getElementById('say').focus(); return; }
+  try{
+    if(rec){ rec.stop(); return; }
+    rec = new SR(); rec.lang = S.lang==='fr'?'fr-FR':'en-GB'; rec.interimResults=true; rec.maxAlternatives=1;
+    mic.classList.add('live'); hint.textContent=t('listening');
+    rec.onresult = e => { const txt=[...e.results].map(r=>r[0].transcript).join(' '); document.getElementById('say').value=txt; if(e.results[e.results.length-1].isFinal){ handleSay(txt); } };
+    rec.onerror = () => { hint.textContent=t('micNo'); };
+    rec.onend = () => { mic.classList.remove('live'); rec=null; };
+    rec.start();
+  }catch(err){ hint.textContent=t('micNo'); mic.classList.remove('live'); rec=null; }
+}
+function handleSay(txt){
+  if(!txt.trim()) return;
+  const P = parseSentence(txt);
+  if(P.type!=='task' && P.amount==null){ document.getElementById('sayHint').textContent=t('noParse'); return; }
+  sheet('record', P);
+}
+
+/* ---------- Sheets ---------- */
+function openSheet(html){
+  closeSheet();
+  const scrim=document.createElement('div'); scrim.className='scrim'; scrim.onclick=closeSheet;
+  const el=document.createElement('div'); el.className='sheet'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true');
+  el.innerHTML=`<div class="wrap">${html}</div>`; document.body.append(scrim,el);
+  el.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeSheet);
+  setTimeout(()=>el.querySelector('input:not([type=hidden]),select,textarea,button')?.focus(),60);
+  return el;
+}
+function closeSheet(){ document.querySelectorAll('.sheet,.scrim').forEach(x=>x.remove()); }
+const flockOpts = sel => `<option value="">${t('allFlocks')}</option>`+(S.flocks||[]).map(f=>`<option value="${f.id}" ${f.id===sel?'selected':''}>${esc(f.name)} (${PTYPES[f.type][S.lang]})</option>`).join('');
+const plotOpts = sel => `<option value="">${t('wholeFarm')}</option>`+S.plots.map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.name)} (${cropName(p.crop)})</option>`).join('');
+const done = (msg) => { save(); closeSheet(); render(); toast(msg); };
+
+function sheet(kind, pre){
+  if(kind==='plot'){
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('addPlot')}</h2>
+      <div class="field"><label for="f-name">${t('plotName')}</label><input id="f-name" placeholder="${esc(t('plotPh'))}"></div>
+      <div class="two"><div class="field"><label for="f-crop">${t('crop')}</label><select id="f-crop">${Object.keys(CROPS).map(c=>`<option value="${c}">${cropName(c)}</option>`).join('')}</select></div>
+      <div class="field"><label for="f-ha">${t('size')}</label><input id="f-ha" type="number" step="0.05" min="0.05" value="1"></div></div>
+      <div class="field"><label for="f-date">${t('plantDate')}</label><input id="f-date" type="date" value="${iso(TODAY)}"></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('savePlot')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const v=s=>el.querySelector(s).value.trim(), err=el.querySelector('#f-err'), ha=parseFloat(v('#f-ha').replace(',','.'));
+      if(!v('#f-name')) return err.textContent=t('errName'); if(!(ha>0)) return err.textContent=t('errHa');
+      S.plots.push({id:id(),name:v('#f-name'),crop:v('#f-crop'),ha,planted:v('#f-date')}); tab='plots'; done(t('plotSaved'));};
+    return;
+  }
+  if(kind==='flock'){
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('addFlock')}</h2>
+      <div class="field"><label for="k-name">${t('flockName')}</label><input id="k-name" placeholder="${esc(t('flockPh'))}"></div>
+      <div class="two"><div class="field"><label for="k-type">${t('birdType')}</label><select id="k-type">${Object.keys(PTYPES).map(k=>`<option value="${k}">${PTYPES[k][S.lang]}</option>`).join('')}</select></div>
+      <div class="field"><label for="k-birds">${t('birdsPlaced')}</label><input id="k-birds" type="number" min="1" step="1" value="100"></div></div>
+      <div class="field"><label for="k-start">${t('startedOn')}</label><input id="k-start" type="date" value="${iso(TODAY)}"></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const v=s=>el.querySelector(s).value.trim(), err=el.querySelector('#f-err'), n=parseInt(v('#k-birds'));
+      if(!v('#k-name')) return err.textContent=t('errFlockName'); if(!(n>0)) return err.textContent=t('errBirds');
+      S.flocks=S.flocks||[]; S.flocks.push({id:id(),name:v('#k-name'),type:v('#k-type'),start:v('#k-start'),birds:n,logs:[]}); tab='plots'; done(t('flockSaved'));};
+    return;
+  }
+  if(kind==='log'){
+    const fl=S.flocks||[]; if(!fl.length){ toast(t('noFlocks')); return; }
+    const sel = pre || fl[0].id;
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('logToday')}</h2>
+      <div class="two"><div class="field"><label for="g-flock">${t('flock')}</label><select id="g-flock">${fl.map(f=>`<option value="${f.id}" ${f.id===sel?'selected':''}>${esc(f.name)}</option>`).join('')}</select></div>
+      <div class="field"><label for="g-date">${t('date')}</label><input id="g-date" type="date" value="${iso(TODAY)}"></div></div>
+      <div class="two"><div class="field" id="w-eggs"><label for="g-eggs">${t('eggsCollected')}</label><input id="g-eggs" type="number" min="0" step="1" inputmode="numeric"></div>
+      <div class="field"><label for="g-deaths">${t('deaths')}</label><input id="g-deaths" type="number" min="0" step="1" value="0" inputmode="numeric"></div></div>
+      <div class="field"><label for="g-feed">${t('feedKg')}</label><input id="g-feed" type="number" min="0" step="any" inputmode="decimal"></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    const sync=()=>{ const f=flockById(el.querySelector('#g-flock').value); el.querySelector('#w-eggs').hidden = f.type!=='layer'; };
+    el.querySelector('#g-flock').onchange=sync; sync();
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const f=flockById(el.querySelector('#g-flock').value), g=s=>Math.max(0,parseFloat(el.querySelector(s).value)||0);
+      const deaths=Math.round(g('#g-deaths')); if(deaths>flockStats(f).alive) return el.querySelector('#f-err').textContent=t('errDeaths');
+      f.logs.push({date:el.querySelector('#g-date').value,eggs:f.type==='layer'?Math.round(g('#g-eggs')):0,deaths,feed:g('#g-feed')}); done(t('logSaved'));};
+    return;
+  }
+  if(kind==='member'){
+    const m=coop().members.find(x=>x.id===pre); if(!m) return; const s=memberStats(m);
+    openSheet(`<h2>${esc(m.name)}</h2><div class="muted">${esc(m.village)} · <span class="num" style="user-select:all">${esc(m.phone)}</span></div>
+      <div class="card"><div class="hd"><div class="ttl">${t('scoreTitle')}</div>${scoreTag(m.score)}</div><div class="muted">${t('lastRecord')} ${dayLabel(m.last)}${s.quiet?' · '+t('quiet'):''}</div></div>
+      <div class="table-wrap"><table><thead><tr><th>${t('crop')}</th><th>ha</th><th>${t('estHarvest')}</th></tr></thead><tbody>${m.crops.map(c=>`<tr><td>${cropName(c.crop)}</td><td>${c.ha}</td><td>${num(CROPS[c.crop].yield*c.ha*1000)} kg</td></tr>`).join('')}</tbody></table></div>
+      ${s.birds?`<div class="card"><div class="kv" style="border:0;padding:0"><div><span>${PTYPES.broiler[S.lang]}</span><b>${num(m.birds.broiler||0)}</b></div><div><span>${PTYPES.layer[S.lang]}</span><b>${num(m.birds.layer||0)}</b></div><div><span>${t('estValue')}</span><b>${fmt(s.value)}</b></div></div></div>`:''}
+      ${m.loan?`<div class="card"><div class="kv" style="border:0;padding:0"><div><span>${t('lent')}</span><b>${fmt(m.loan.principal)}</b></div><div><span>${t('repaid')}</span><b>${fmt(m.loan.repaid)}</b></div><div><span>${t('owes')}</span><b class="${s.late?'neg':''}">${fmt(s.owed)}</b></div></div><div class="muted">${t('due')} ${dayLabel(m.loan.due)}${s.late?' · '+t('lateRepay'):''}</div></div>`:`<div class="muted">${t('noLoan')}</div>`}
+      <button type="button" class="btn ghost" data-close>${t('close')}</button>`);
+    return;
+  }
+  if(kind==='addMember'){
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('addMember')}</h2>
+      <div class="field"><label for="mb-name">${t('workerName')}</label><input id="mb-name"></div>
+      <div class="two"><div class="field"><label for="mb-village">${t('village')}</label><input id="mb-village"></div><div class="field"><label for="mb-phone">${t('phone')}</label><input id="mb-phone" type="tel"></div></div>
+      <div class="two"><div class="field"><label for="mb-crop">${t('mainCrop')}</label><select id="mb-crop">${Object.keys(CROPS).map(c=>`<option value="${c}">${cropName(c)}</option>`).join('')}</select></div><div class="field"><label for="mb-ha">${t('size')}</label><input id="mb-ha" type="number" min="0.1" step="0.1" value="1"></div></div>
+      <div class="two"><div class="field"><label for="mb-br">${PTYPES.broiler[S.lang]}</label><input id="mb-br" type="number" min="0" step="1" value="0"></div><div class="field"><label for="mb-ly">${PTYPES.layer[S.lang]}</label><input id="mb-ly" type="number" min="0" step="1" value="0"></div></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const v=s=>el.querySelector(s).value.trim(); if(!v('#mb-name')) return el.querySelector('#f-err').textContent=t('errWorkerName');
+      coop().members.push({id:id(),name:v('#mb-name'),village:v('#mb-village'),phone:v('#mb-phone'),crops:[{crop:v('#mb-crop'),ha:parseFloat(v('#mb-ha'))||1}],birds:{broiler:parseInt(v('#mb-br'))||0,layer:parseInt(v('#mb-ly'))||0},score:50,last:iso(TODAY),loan:null});
+      tab='plots'; done(t('memberSaved'));};
+    return;
+  }
+  if(kind==='startChk'){
+    const ent=S.mode||'crop'; const mine=Object.keys(TPLS).filter(k=>TPLS[k].ent===ent), cust=(S.customTpls||[]).filter(c=>c.ent===ent);
+    const el=openSheet(`<h2>${t('startChk')}</h2><div class="list">${mine.map(k=>`<button type="button" class="curopt" data-tpl="${k}" style="grid-template-columns:1fr auto"><span class="nm" style="font-weight:700">${TPLS[k][S.lang]}</span><span class="sy">${TPLS[k].items[S.lang].length} ${t('steps')}</span></button>`).join('')}${cust.map(c=>`<button type="button" class="curopt" data-tpl="${c.id}" style="grid-template-columns:1fr auto"><span class="nm" style="font-weight:700">${esc(c.title)}</span><span class="sy">${c.items.length} ${t('steps')}</span></button>`).join('')}</div>
+      <h2>${t('makeOwn')}</h2>
+      <form id="f" class="wrap" style="padding:0"><div class="field"><label for="ct-title">${t('chkName')}</label><input id="ct-title" placeholder="${esc(t('chkNamePh'))}"></div>
+      <div class="field"><label for="ct-items">${t('chkItems')}</label><textarea id="ct-items" style="font-family:var(--body);font-size:16px" placeholder="${esc(t('chkItemsPh'))}"></textarea></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('saveStart')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    el.querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>{ S.runs=S.runs||[]; S.runs.push({id:id(),tpl:b.dataset.tpl,ent,date:iso(TODAY),checked:[]}); calTab='chk'; done(t('chkStarted')); });
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const title=el.querySelector('#ct-title').value.trim(), items=el.querySelector('#ct-items').value.split('\n').map(x=>x.trim()).filter(Boolean);
+      if(!title) return el.querySelector('#f-err').textContent=t('errChkName'); if(items.length<1) return el.querySelector('#f-err').textContent=t('errChkItems');
+      const c={id:id(),title,ent,items}; S.customTpls=S.customTpls||[]; S.customTpls.push(c); S.runs=S.runs||[]; S.runs.push({id:id(),tpl:c.id,ent,date:iso(TODAY),checked:[]}); calTab='chk'; done(t('chkStarted'));};
+    return;
+  }
+  if(kind==='equip'){
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('addEquip')}</h2>
+      <div class="field"><label for="q-name">${t('equipName')}</label><input id="q-name" placeholder="${esc(t('equipPh'))}"></div>
+      <div class="two"><div class="field"><label for="q-type">${t('kind')}</label><select id="q-type">${Object.keys(ETYPES).map(k=>`<option value="${k}">${ETYPES[k][S.lang]}</option>`).join('')}</select></div>
+      <div class="field"><label for="q-ent">${t('usedFor')}</label><select id="q-ent"><option value="crop">${t('crops')}</option><option value="poultry" ${isP()?'selected':''}>${t('poultry')}</option></select></div></div>
+      <div class="two"><div class="field"><label for="q-cost">${t('value')}</label><input id="q-cost" type="number" min="0" step="any"></div>
+      <div class="field"><label for="q-bought">${t('boughtOn')}</label><input id="q-bought" type="date" value="${iso(TODAY)}"></div></div>
+      <div class="two"><div class="field"><label for="q-every">${t('serviceEvery')}</label><input id="q-every" type="number" min="1" step="1" value="90"></div>
+      <div class="field"><label for="q-last">${t('lastService')}</label><input id="q-last" type="date" value="${iso(TODAY)}"></div></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    const q=s=>el.querySelector(s); q('#q-type').onchange=()=>{ q('#q-every').value=ETYPES[q('#q-type').value].every; if(q('#q-type').value==='poultry') q('#q-ent').value='poultry'; };
+    q('#f').onsubmit=e=>{e.preventDefault(); if(!q('#q-name').value.trim()) return q('#f-err').textContent=t('errEquipName');
+      S.equipment=S.equipment||[]; S.equipment.push({id:id(),name:q('#q-name').value.trim(),type:q('#q-type').value,ent:q('#q-ent').value,bought:q('#q-bought').value,cost:toX(parseFloat(q('#q-cost').value)||0),every:Math.max(1,parseInt(q('#q-every').value)||90),lastService:q('#q-last').value,logs:[]});
+      tab='tasks'; calTab='equip'; done(t('equipSaved'));};
+    return;
+  }
+  if(kind==='service'){
+    const eq=(S.equipment||[]).find(x=>x.id===pre); if(!eq) return;
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${esc(eq.name)}</h2>
+      <div class="seg" id="s-kind"><button type="button" class="on" data-k="service">${t('service')}</button><button type="button" data-k="repair">${t('repair')}</button></div>
+      <div class="two"><div class="field"><label for="s-amt">${t('amount')}</label><input id="s-amt" type="number" min="0" step="any" value="0"></div>
+      <div class="field"><label for="s-date">${t('date')}</label><input id="s-date" type="date" value="${iso(TODAY)}"></div></div>
+      <div class="field"><label for="s-note">${t('whatDone')}</label><input id="s-note" placeholder="${esc(t('servicePh'))}"></div>
+      <div class="hint">${t('serviceHint')}</div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    let k='service'; el.querySelectorAll('#s-kind button').forEach(b=>b.onclick=()=>{ k=b.dataset.k; el.querySelectorAll('#s-kind button').forEach(x=>x.classList.toggle('on',x===b)); });
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const a=toX(parseFloat(el.querySelector('#s-amt').value)||0), date=el.querySelector('#s-date').value, note=el.querySelector('#s-note').value.trim();
+      eq.logs.push({date,kind:k,amount:a,note}); if(k==='service' && date>(eq.lastService||'')) eq.lastService=date;
+      if(a>0) S.records.push({id:id(),ent:eq.ent||'crop',date,plot:'',type:'cost',cat:'equip',amount:a,note:`${eq.name}: ${note||(k==='repair'?t('repair'):t('service'))}`});
+      done(t('serviceSaved'));};
+    return;
+  }
+  if(kind==='worker'){
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('addWorker')}</h2>
+      <div class="field"><label for="wk-name">${t('workerName')}</label><input id="wk-name"></div>
+      <div class="two"><div class="field"><label for="wk-phone">${t('phone')}</label><input id="wk-phone" type="tel" inputmode="tel"></div>
+      <div class="field"><label for="wk-rate">${t('dayRate')}</label><input id="wk-rate" type="number" min="0" step="any" value="${inCur(60)}"></div></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const v=s=>el.querySelector(s).value.trim(); if(!v('#wk-name')) return el.querySelector('#f-err').textContent=t('errWorkerName');
+      S.workers=S.workers||[]; S.workers.push({id:id(),name:v('#wk-name'),phone:v('#wk-phone'),rate:toX(parseFloat(v('#wk-rate'))||0)}); finTab='workers'; done(t('workerSaved'));};
+    return;
+  }
+  if(kind==='work'){
+    const W=S.workers||[]; const sel = pre==='casual' ? '' : (pre||'');
+    const wk = workerById(sel);
+    const unitOpts = `<optgroup label="${esc(t('crops'))}">${S.plots.map(p=>`<option value="crop|${p.id}">${esc(p.name)} (${cropName(p.crop)})</option>`).join('')}</optgroup><optgroup label="${esc(t('poultry'))}">${(S.flocks||[]).map(f=>`<option value="poultry|${f.id}">${esc(f.name)}</option>`).join('')}</optgroup><option value="crop|">${t('wholeFarm')}</option>`;
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('addWork')}</h2>
+      <div class="field"><label for="j-worker">${t('who')}</label><select id="j-worker"><option value="">${t('casual')}</option>${W.map(w=>`<option value="${w.id}" ${w.id===sel?'selected':''}>${esc(w.name)}</option>`).join('')}</select></div>
+      <div class="field"><label for="j-task">${t('whatWork')}</label><input id="j-task" placeholder="${esc(t('workPh'))}"></div>
+      <div class="field"><label for="j-unit">${t('where')}</label><select id="j-unit">${unitOpts}</select></div>
+      <div class="two"><div class="field"><label for="j-people">${t('people')}</label><input id="j-people" type="number" min="1" step="1" value="1"></div>
+      <div class="field"><label for="j-days">${t('daysN')}</label><input id="j-days" type="number" min="0.5" step="0.5" value="1"></div></div>
+      <div class="two"><div class="field"><label for="j-rate">${t('ratePer')}</label><input id="j-rate" type="number" min="0" step="any" value="${inCur(wk?wk.rate:50)}"></div>
+      <div class="field"><label for="j-date">${t('date')}</label><input id="j-date" type="date" value="${iso(TODAY)}"></div></div>
+      <div class="card"><div class="muted">${t('total')}</div><div class="num" id="j-total" style="font-size:1.4rem"></div></div>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" id="j-paid"> ${t('paidNow')}</label>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    const q=s=>el.querySelector(s);
+    if(isP() && (S.flocks||[]).length) q('#j-unit').value='poultry|'+S.flocks[0].id;
+    const upd=()=>{ const tot=(parseFloat(q('#j-people').value)||0)*(parseFloat(q('#j-days').value)||0)*(parseFloat(q('#j-rate').value)||0); q('#j-total').textContent=fmt(toX(tot))+' '+sym(); };
+    q('#j-worker').onchange=()=>{ const w=workerById(q('#j-worker').value); if(w){ q('#j-rate').value=inCur(w.rate); q('#j-people').value=1; } upd(); };
+    ['#j-people','#j-days','#j-rate'].forEach(s=>q(s).oninput=upd); upd();
+    q('#f').onsubmit=e=>{e.preventDefault(); const task=q('#j-task').value.trim(); if(!task) return q('#f-err').textContent=t('errTask');
+      const [ent,plot]=q('#j-unit').value.split('|'); const people=Math.max(1,parseInt(q('#j-people').value)||1), days=parseFloat(q('#j-days').value)||0, rate=toX(parseFloat(q('#j-rate').value)||0);
+      if(!(days>0)) return q('#f-err').textContent=t('errDays');
+      const j={id:id(),date:q('#j-date').value,worker:q('#j-worker').value,people,days,rate,task,plot,ent,paid:0};
+      S.work=S.work||[]; S.work.push(j);
+      if(q('#j-paid').checked){ j.paid=jobTotal(j); S.records.push({id:id(),ent,date:j.date,plot,type:'cost',cat:'labour',amount:j.paid,note:`${workerById(j.worker)?.name||t('casual')}: ${task}`}); }
+      finTab='workers'; done(t('workSaved'));};
+    return;
+  }
+  if(kind==='pay'){
+    const wid = pre==='casual' ? '' : pre, w=workerById(wid), sum=workerSum(wid);
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('pay')} ${esc(w?w.name:t('casual'))}</h2>
+      <div class="muted">${t('owes')} <span class="num">${fmt(sum.owed)}</span> ${sym()}</div>
+      <div class="two"><div class="field"><label for="p-amt">${t('amount')}</label><input id="p-amt" type="number" min="0" step="any" value="${inCur(sum.owed)}"></div>
+      <div class="field"><label for="p-date">${t('date')}</label><input id="p-date" type="date" value="${iso(TODAY)}"></div></div>
+      <div class="field"><label for="p-how">${t('payHow')}</label><select id="p-how"><option>${t('cash')}</option><option>${t('mobileMoney')}</option></select></div>
+      <div class="hint">${t('payHint')}</div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); let left=Math.min(toX(parseFloat(el.querySelector('#p-amt').value)||0), sum.owed); if(!(left>0)) return el.querySelector('#f-err').textContent=t('errAmt');
+      const date=el.querySelector('#p-date').value, how=el.querySelector('#p-how').value, groups={};
+      sum.jobs.filter(j=>jobOwed(j)>0).sort((a,b)=>a.date.localeCompare(b.date)).forEach(j=>{ if(left<=0) return; const x=Math.min(left,jobOwed(j)); j.paid=(j.paid||0)+x; left-=x;
+        const k=j.ent+'|'+j.plot; groups[k]=groups[k]||{ent:j.ent,plot:j.plot,amount:0,tasks:new Set()}; groups[k].amount+=x; groups[k].tasks.add(j.task); });
+      Object.values(groups).forEach(g=>S.records.push({id:id(),ent:g.ent,date,plot:g.plot,type:'cost',cat:'labour',amount:g.amount,note:`${w?w.name:t('casual')} (${how}): ${[...g.tasks].join(', ')}`}));
+      done(t('paySaved'));};
+    return;
+  }
+  if(kind==='loan'){
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('addLoan')}</h2>
+      <div class="field"><label for="l-lender">${t('lender')}</label><input id="l-lender"></div>
+      <div class="two"><div class="field"><label for="l-amt">${t('amount')}</label><input id="l-amt" type="number" min="0" step="any" inputmode="numeric"></div>
+      <div class="field"><label for="l-rate">${t('rate')}</label><input id="l-rate" type="number" min="0" step="0.5" value="0"></div></div>
+      <div class="two"><div class="field"><label for="l-start">${t('startDate')}</label><input id="l-start" type="date" value="${iso(TODAY)}"></div>
+      <div class="field"><label for="l-due">${t('dueDate')}</label><input id="l-due" type="date" value="${addDays(120)}"></div></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const v=s=>el.querySelector(s).value.trim(), err=el.querySelector('#f-err'), a=parseFloat(v('#l-amt'));
+      if(!v('#l-lender')) return err.textContent=t('errLender'); if(!(a>0)) return err.textContent=t('errAmt');
+      S.loans.push({id:id(),lender:v('#l-lender'),principal:toX(a),rate:parseFloat(v('#l-rate'))||0,start:v('#l-start'),due:v('#l-due'),repaid:[]}); finTab='loans'; done(t('loanSaved'));};
+    return;
+  }
+  if(kind==='repay'){
+    const l=S.loans.find(x=>x.id===pre), L=loanCalc(l);
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('repay')}</h2><div class="muted">${esc(l.lender)} · ${t('owed')} <span class="num">${fmt(L.left)}</span> ${sym()}</div>
+      <div class="two"><div class="field"><label for="r-amt">${t('amount')}</label><input id="r-amt" type="number" min="0" step="any" value="${inCur(L.left)}"></div>
+      <div class="field"><label for="r-date">${t('date')}</label><input id="r-date" type="date" value="${iso(TODAY)}"></div></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const a=parseFloat(el.querySelector('#r-amt').value); if(!(a>0)) return el.querySelector('#f-err').textContent=t('errAmt');
+      l.repaid.push({date:el.querySelector('#r-date').value,amount:Math.min(toX(a),L.left)}); done(t('repaySaved'));};
+    return;
+  }
+  if(kind==='budget'){
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('budgetTitle')}</h2>
+      <div class="two">${costsFor(S.mode).map(k=>`<div class="field"><label for="b-${k}">${catName(k)}</label><input id="b-${k}" type="number" min="0" step="any" value="${inCur(budgetMode()[k]||0)}"></div>`).join('')}</div>
+      <button class="btn">${t('saveBudget')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    el.querySelector('#f').onsubmit=e=>{e.preventDefault(); const BG=budgetMode(); costsFor(S.mode).forEach(k=>BG[k]=Math.max(0,toX(parseFloat(el.querySelector('#b-'+k).value)||0))); done(t('budgetSaved'));};
+    return;
+  }
+  if(kind==='backup'){ backupSheet(); return; }
+  if(kind==='currency'){
+    let sel = curCode();
+    const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('curTitle')}</h2><div class="muted">${t('curNote')}</div>
+      <div class="list" id="curList">${Object.keys(CUR).map(c=>`<button type="button" class="curopt" data-cur="${c}"><span class="code">${c}</span><span class="nm">${CUR[c][S.lang]}</span><span class="sy">${CUR[c].sym}</span></button>`).join('')}</div>
+      <div class="field" id="w-rate"><label for="c-rate" id="c-rate-lbl"></label><input id="c-rate" type="number" min="0" step="any"></div>
+      <div class="hint" id="c-fixed"></div>
+      <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+    const big = c => CUR[c].k >= 1; // show "1 USD = 18.7 K", else "1 K = 93 MWK"
+    const show = c => { sel=c;
+      el.querySelectorAll('.curopt').forEach(b=>{ const on=b.dataset.cur===c; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); });
+      const base = c==='ZMW', sep = S.lang==='fr'?' : ':': ';
+      el.querySelector('#w-rate').hidden = base;
+      el.querySelector('#c-rate-lbl').textContent = t('rateLbl') + sep + (big(c) ? `1 ${c} = ? K` : `1 K = ? ${c}`);
+      el.querySelector('#c-rate').value = base ? '' : big(c) ? +kPer(c).toFixed(4) : +(1/kPer(c)).toFixed(2);
+      el.querySelector('#c-fixed').textContent = '';
+    };
+    el.querySelectorAll('.curopt').forEach(b=>b.onclick=()=>show(b.dataset.cur)); show(sel);
+    el.querySelector('#f').onsubmit=e=>{ e.preventDefault();
+      if(sel!=='ZMW'){ const r=parseFloat(el.querySelector('#c-rate').value); if(!(r>0)) return el.querySelector('#f-err').textContent=t('rateLbl')+' ?'; S.rates=S.rates||{}; S.rates[sel]= big(sel) ? r : 1/r; }
+      S.currency=sel; done(t('curSaved')); };
+    return;
+  }
+  // record
+  const P = pre || {type:'cost',cat:isP()?'feed':'seed',amount:'',plot:'',date:iso(TODAY),note:'',text:'',ent:S.mode||'crop'};
+  const ent = P.ent || S.mode || 'crop';
+  const el=openSheet(`<form id="f" class="wrap" style="padding:0"><h2>${t('addRec')} · ${ent==='poultry'?t('poultry'):t('crops')}</h2>
+    ${pre?`<div class="hint">${t('heard')}</div>`:''}
+    <div class="seg" id="f-kind">${[['cost',t('iSpent')],['sale',t('iSold')],['task',t('aJob')]].map(([k,l])=>`<button type="button" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="field" id="w-cat"><label for="f-cat">${t('whatFor')}</label><select id="f-cat"></select></div>
+    <div class="field" id="w-text"><label for="f-text">${t('job')}</label><input id="f-text" placeholder="${esc(t('jobPh'))}" value="${esc(P.text||'')}"></div>
+    <div class="two"><div class="field" id="w-amt"><label for="f-amt">${t('amount')}</label><input id="f-amt" type="number" min="0" step="any" inputmode="numeric" value="${P.amount??''}"></div>
+    <div class="field"><label for="f-date">${t('date')}</label><input id="f-date" type="date" value="${P.date}"></div></div>
+    <div class="field"><label for="f-plot">${ent==='poultry'?t('flock'):t('plot')}</label><select id="f-plot">${ent==='poultry'?flockOpts(P.plot):plotOpts(P.plot)}</select></div>
+    <div class="field" id="w-note"><label for="f-note">${t('note')}</label><input id="f-note" placeholder="${esc(t('notePh'))}" value="${esc(pre?P.note:'')}"></div>
+    <div class="err" id="f-err"></div><button class="btn">${t('save')}</button><button type="button" class="btn ghost" data-close>${t('cancel')}</button></form>`);
+  let k=P.type;
+  const setKind=nk=>{ k=nk; el.querySelectorAll('#f-kind button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
+    ['#w-cat','#w-amt','#w-note'].forEach(s=>el.querySelector(s).hidden=k==='task'); el.querySelector('#w-text').hidden=k!=='task';
+    if(k!=='task'){ const list=k==='cost'?costsFor(ent):salesFor(ent); el.querySelector('#f-cat').innerHTML=list.map(c=>`<option value="${c}" ${c===P.cat?'selected':''}>${catName(c)}</option>`).join(''); } };
+  setKind(k); el.querySelectorAll('#f-kind button').forEach(b=>b.onclick=()=>setKind(b.dataset.k));
+  el.querySelector('#f').onsubmit=e=>{ e.preventDefault(); const v=s=>el.querySelector(s).value.trim(), err=el.querySelector('#f-err');
+    if(k==='task'){ if(!v('#f-text')) return err.textContent=t('errJob'); S.tasks.push({id:id(),ent,date:v('#f-date'),plot:v('#f-plot'),text:v('#f-text'),done:false}); done(t('jobSaved')); }
+    else { const a=parseFloat(v('#f-amt')); if(v('#f-amt')===''||!(a>=0)) return err.textContent=t('errAmt');
+      S.records.push({id:id(),ent,date:v('#f-date'),plot:v('#f-plot'),type:k,cat:v('#f-cat'),amount:toX(a),note:v('#f-note')}); done(k==='cost'?t('costSaved'):t('saleSaved')); }
+    const say=document.getElementById('say'); if(say) say.value='';
+  };
+}
+
+/* ---------- SMS backup ---------- */
+const cropByCode = c => Object.keys(CROPS).find(k=>CROPS[k].code===c);
+const catByCode = c => Object.keys(CATS).find(k=>CATS[k].code===c);
+const d6 = d => d.replace(/-/g,'').slice(2); // 2026-06-22 -> 260622
+const unD6 = s => '20'+s.slice(0,2)+'-'+s.slice(2,4)+'-'+s.slice(4,6);
+const clean = s => String(s||'').replace(/[|;~]/g,' ').slice(0,24);
+function encode(){
+  const pi = {}; S.plots.forEach((p,i)=>pi[p.id]=i+1); (S.flocks||[]).forEach((f,i)=>pi[f.id]=i+1);
+  const F = (S.flocks||[]).map(f=>[clean(f.name),PTYPES[f.type].code,d6(f.start),f.birds,flockStats(f).deaths].join('~')).join(';');
+  const P = S.plots.map(p=>[clean(p.name),CROPS[p.crop].code,p.ha,d6(p.planted)].join('~')).join(';');
+  const R = S.records.map(r=>[d6(r.date),pi[r.plot]||0,(r.type==='cost'?'D':'V')+(entOf(r)==='poultry'?'P':''),CATS[r.cat].code,r.amount].join('~')).join(';');
+  const L = S.loans.map(l=>[clean(l.lender),l.principal,l.rate,d6(l.start),d6(l.due),l.repaid.reduce((a,x)=>a+x.amount,0)].join('~')).join(';');
+  const K = S.tasks.filter(x=>!x.done).map(x=>[d6(x.date),pi[x.plot]||0,clean(x.text),x.ent==='poultry'?'P':''].join('~')).join(';');
+  const B = COSTS.map(k=>(S.budget||{})[k]||0).join('~');
+  const Q = PCOSTS.map(k=>(S.budgetP||{})[k]||0).join('~');
+  const body = `P${P}|F${F}|R${R}|L${L}|K${K}|B${B}|Q${Q}`;
+  const size = 140, parts=[]; for(let i=0;i<body.length;i+=size) parts.push(body.slice(i,i+size));
+  return parts.map((p,i)=>`SHM3 ${i+1}/${parts.length} ${p}`);
+}
+function decode(text){
+  const segs = [...text.matchAll(/SHM3 (\d+)\/(\d+) ([^\n]*)/g)].map(m=>({i:+m[1],n:+m[2],b:m[3]}));
+  if(!segs.length) throw 0; const n=segs[0].n; const got={}; segs.forEach(s=>got[s.i]=s.b);
+  for(let i=1;i<=n;i++) if(got[i]==null) throw 0;
+  const body = Array.from({length:n},(_,i)=>got[i+1]).join('');
+  const sec = {}; body.split('|').forEach(s=>sec[s[0]]=s.slice(1));
+  const rows = s => s? s.split(';').map(r=>r.split('~')) : [];
+  const plots = rows(sec.P).map((r,i)=>({id:'p'+(i+1),name:r[0],crop:cropByCode(r[1])||'maize',ha:+r[2],planted:unD6(r[3])}));
+  const flocks = rows(sec.F).map((r,i)=>({id:'f'+(i+1),name:r[0],type:Object.keys(PTYPES).find(k=>PTYPES[k].code===r[1])||'broiler',start:unD6(r[2]),birds:+r[3],logs:+r[4]?[{date:unD6(r[2]),deaths:+r[4],feed:0,eggs:0}]:[]}));
+  const records = rows(sec.R).map(r=>{ const pp=r[2].endsWith('P'); return {id:id(),ent:pp?'poultry':'crop',date:unD6(r[0]),plot:+r[1]?(pp?'f':'p')+r[1]:'',type:r[2][0]==='D'?'cost':'sale',cat:catByCode(r[3])||'other',amount:+r[4],note:''}; });
+  const loans = rows(sec.L).map(r=>({id:id(),lender:r[0],principal:+r[1],rate:+r[2],start:unD6(r[3]),due:unD6(r[4]),repaid:+r[5]?[{date:unD6(r[3]),amount:+r[5]}]:[]}));
+  const tasks = rows(sec.K).map(r=>({id:id(),ent:r[3]==='P'?'poultry':'crop',date:unD6(r[0]),plot:+r[1]?(r[3]==='P'?'f':'p')+r[1]:'',text:r[2],done:false}));
+  const bv = (sec.B||'').split('~'); const budget={}; COSTS.forEach((k,i)=>budget[k]=+bv[i]||0);
+  const qv = (sec.Q||'').split('~'); const budgetP={}; PCOSTS.forEach((k,i)=>budgetP[k]=+qv[i]||0);
+  if(!plots.length && !records.length && !flocks.length) throw 0;
+  return {plots,flocks,records,loans,tasks,budget,budgetP};
+}
+async function copyText(txt, btn){
+  try{ await navigator.clipboard.writeText(txt); btn.textContent=t('copied'); }
+  catch(e){ const pre=btn.closest('.msg')?.querySelector('.body'); if(pre){ const r=document.createRange(); r.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(r);} toast(t('copyFail')); }
+}
+function backupSheet(){
+  const msgs = encode();
+  const el=openSheet(`<h2>${t('bkTitle')}</h2>
+    <div class="card"><span class="status ${online()?'':'off'}"><i></i>${online()?t('online'):t('offline')}</span><div class="muted">${t('bkIntro')}</div>
+      <div class="muted">${t('bkStatus')}: <b>${S.lastBackup?dayLabel(S.lastBackup):t('never')}</b></div></div>
+    <section><h2>${t('smsTitle')}</h2><div class="muted">${t('smsIntro')}</div>
+      <div class="muted">${t('smsTo')}: <b class="num" style="user-select:all">${t('smsNum')}</b> · ${msgs.length} ${t('msgs')}</div>
+      <div class="sms">${msgs.map((m,i)=>`<div class="msg"><div class="row"><span>${t('part')} ${i+1}/${msgs.length}</span><button type="button" class="btn small line" data-copy="${i}">${t('copy')}</button></div><div class="body">${esc(m)}</div></div>`).join('')}</div>
+      <button type="button" class="btn" id="markSent">${t('marked')}</button></section>
+    <section><h2>${t('cmdTitle')}</h2><div class="muted">${t('cmdIntro')}</div>
+      <div class="cmds">${S.lang==='fr'
+        ?`<code>DEP 900 ENG MAIS</code><span>${t('cmdSpend')}</span><code>VEN 3400 MAIS</code><span>${t('cmdSell')}</span><code>TAC Traiter le coton</code><span>${t('cmdJob')}</span>`
+        :`<code>SPEND 900 FERT MAIZE</code><span>${t('cmdSpend')}</span><code>SELL 3400 MAIZE</code><span>${t('cmdSell')}</span><code>JOB Spray cotton</code><span>${t('cmdJob')}</span>`}</div>
+      <div class="hint">${S.lang==='fr'?'Testez une commande dans la case « Dites ou écrivez » de l’accueil.':'Try a command in the box on the Today screen.'}</div></section>
+    <section><h2>${t('restoreTitle')}</h2><div class="muted">${t('restoreIntro')}</div>
+      <div class="field"><label for="restoreTxt">SMS</label><textarea id="restoreTxt" placeholder="SHM3 1/${msgs.length} …"></textarea></div>
+      <div class="err" id="rErr"></div><button type="button" class="btn line" id="doRestore">${t('restore')}</button></section>
+    <button type="button" class="btn ghost" data-close>${t('cancel')}</button>`);
+  el.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copyText(msgs[+b.dataset.copy],b));
+  el.querySelector('#markSent').onclick=()=>{ S.lastBackup=iso(TODAY); done(t('markedDone')); };
+  el.querySelector('#doRestore').onclick=()=>{ try{ const d=decode(el.querySelector('#restoreTxt').value); Object.assign(S,d,{example:false}); tab='today'; done(t('restored')); } catch(e){ el.querySelector('#rErr').textContent=t('restoreErr'); } };
+}
+
+/* ---------- Events ---------- */
+let armed=false;
+document.addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b || b.closest('.sheet')) return;
+  if(b.dataset.tab){ tab=b.dataset.tab; render(); scrollTo(0,0); }
+  else if(b.dataset.go){ tab=b.dataset.go; render(); scrollTo(0,0); }
+  else if(b.dataset.mode){ S.mode=b.dataset.mode; save(); render(); }
+  else if(b.dataset.log!==undefined) sheet('log', b.dataset.log||null);
+  else if(b.id==='addFlock') sheet('flock');
+  else if(b.id==='addWorker') sheet('worker');
+  else if(b.dataset.member) sheet('member', b.dataset.member);
+  else if(b.id==='addMember') sheet('addMember');
+  else if(b.id==='addEquip') sheet('equip');
+  else if(b.dataset.service) sheet('service', b.dataset.service);
+  else if(b.dataset.cal){ calTab=b.dataset.cal; render(); }
+  else if(b.id==='startChk') sheet('startChk');
+  else if(b.dataset.chk){ const [rid,i]=b.dataset.chk.split(':'); const r=(S.runs||[]).find(x=>x.id===rid); if(r){ const n=+i; r.checked = r.checked.includes(n) ? r.checked.filter(x=>x!==n) : [...r.checked,n]; const all=r.checked.length>=tplOf(r).items.length; save(); render(); if(all) toast(t('chkDone')); } }
+  else if(b.dataset.again){ S.runs=S.runs||[]; S.runs.push({id:id(),tpl:b.dataset.again,ent:S.mode||'crop',date:iso(TODAY),checked:[]}); save(); render(); toast(t('chkStarted')); }
+  else if(b.dataset.work!==undefined) sheet('work', b.dataset.work);
+  else if(b.dataset.pay!==undefined) sheet('pay', b.dataset.pay);
+  else if(b.dataset.lang){ S.lang=b.dataset.lang; save(); render(); }
+  else if(b.dataset.fin){ finTab=b.dataset.fin; render(); }
+  else if(b.dataset.filter){ moneyFilter=b.dataset.filter; render(); }
+  else if(b.dataset.tick){ const x=S.tasks.find(q=>q.id===b.dataset.tick); x.done=!x.done; save(); render(); }
+  else if(b.dataset.repay) sheet('repay', b.dataset.repay);
+  else if(b.id==='fab') sheet(isC()?'addMember':'record');
+  else if(b.id==='addPlot') sheet('plot');
+  else if(b.id==='addLoan') sheet('loan');
+  else if(b.id==='editBudget') sheet('budget');
+  else if(b.id==='bk') sheet('backup');
+  else if(b.id==='curBtn') sheet('currency');
+  else if(b.id==='mic') startVoice();
+  else if(b.id==='clear'){
+    if(!armed){ armed=true; b.textContent=t('confirmClear'); setTimeout(()=>{armed=false; render();},4000); return; }
+    armed=false; S={lang:S.lang,currency:S.currency,mode:S.mode,plots:[],flocks:[],records:[],tasks:[],loans:[],workers:[],work:[],equipment:[],runs:[],customTpls:[],budget:{},budgetP:{},example:false,lastBackup:null}; save(); tab='plots'; render(); toast(t('cleared'));
+  }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeSheet();
+  if(e.key==='Enter' && e.target.id==='say'){ e.preventDefault(); handleSay(e.target.value); }
+});
+addEventListener('online',render); addEventListener('offline',render);
+render();
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
